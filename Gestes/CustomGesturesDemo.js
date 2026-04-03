@@ -20,16 +20,19 @@ const GESTURE_LABELS = [
   "GESTURE_LABEL_MAX_ENUM",
 ];
 
+const toAssetUrl = (assetPath) =>
+  new URL(assetPath, import.meta.url).toString();
+
 const GESTURE_IMAGES = [
-  "images/empty.png",
-  "images/fist.png",
-  "images/thumb.png",
-  "images/thumb_down.png",
-  "images/point.png",
-  "images/victory.png",
-  "images/rock.png",
-  "images/shaka.png",
-  "images/error.png",
+  toAssetUrl("./images/empty.png"),
+  toAssetUrl("./images/fist.png"),
+  toAssetUrl("./images/thumb.png"),
+  toAssetUrl("./images/thumb_down.png"),
+  toAssetUrl("./images/point.png"),
+  toAssetUrl("./images/victory.png"),
+  toAssetUrl("./images/rock.png"),
+  toAssetUrl("./images/shaka.png"),
+  toAssetUrl("./images/error.png"),
 ];
 
 const LEFT_HAND_INDEX = 0;
@@ -108,25 +111,30 @@ export class CustomGestureDemo extends xb.Script {
         gesturesRow.addCol({ weight: 0.1 });
         gesturesRow
           .addCol({ weight: 0.1 })
-          .addImage({ src: "images/fist.png", scaleFactor: 0.3 });
+          .addImage({ src: toAssetUrl("./images/fist.png"), scaleFactor: 0.3 });
+        gesturesRow.addCol({ weight: 0.1 }).addImage({
+          src: toAssetUrl("./images/thumb.png"),
+          scaleFactor: 0.3,
+        });
+        gesturesRow.addCol({ weight: 0.1 }).addImage({
+          src: toAssetUrl("./images/thumb_down.png"),
+          scaleFactor: 0.3,
+        });
+        gesturesRow.addCol({ weight: 0.1 }).addImage({
+          src: toAssetUrl("./images/point.png"),
+          scaleFactor: 0.3,
+        });
+        gesturesRow.addCol({ weight: 0.1 }).addImage({
+          src: toAssetUrl("./images/victory.png"),
+          scaleFactor: 0.3,
+        });
         gesturesRow
           .addCol({ weight: 0.1 })
-          .addImage({ src: "images/thumb.png", scaleFactor: 0.3 });
-        gesturesRow
-          .addCol({ weight: 0.1 })
-          .addImage({ src: "images/thumb_down.png", scaleFactor: 0.3 });
-        gesturesRow
-          .addCol({ weight: 0.1 })
-          .addImage({ src: "images/point.png", scaleFactor: 0.3 });
-        gesturesRow
-          .addCol({ weight: 0.1 })
-          .addImage({ src: "images/victory.png", scaleFactor: 0.3 });
-        gesturesRow
-          .addCol({ weight: 0.1 })
-          .addImage({ src: "images/rock.png", scaleFactor: 0.3 });
-        gesturesRow
-          .addCol({ weight: 0.1 })
-          .addImage({ src: "images/shaka.png", scaleFactor: 0.3 });
+          .addImage({ src: toAssetUrl("./images/rock.png"), scaleFactor: 0.3 });
+        gesturesRow.addCol({ weight: 0.1 }).addImage({
+          src: toAssetUrl("./images/shaka.png"),
+          scaleFactor: 0.3,
+        });
 
         // Vertical alignment on the description text element.
         midColumn.addRow({ weight: 0.1 });
@@ -144,8 +152,12 @@ export class CustomGestureDemo extends xb.Script {
     }
 
     // Model
-    this.modelPath = "./custom_gestures_model.tflite";
+    this.modelPath = toAssetUrl("./custom_gestures_model.tflite");
     this.modelState = "None";
+    this.lastPublishedGestures = {
+      left: UNKNOWN_GESTURE,
+      right: UNKNOWN_GESTURE,
+    };
 
     this.frameId = 0;
 
@@ -304,30 +316,58 @@ export class CustomGestureDemo extends xb.Script {
     return result;
   }
 
+  #publishGestureIfChanged(hand, gestureIndex) {
+    if (hand !== "left" && hand !== "right") {
+      return;
+    }
+    if (this.lastPublishedGestures[hand] === gestureIndex) {
+      return;
+    }
+
+    this.lastPublishedGestures[hand] = gestureIndex;
+    window.dispatchEvent(
+      new CustomEvent("custom-gesture-changed", {
+        detail: {
+          hand,
+          gestureIndex,
+          label: GESTURE_LABELS[gestureIndex],
+        },
+      }),
+    );
+  }
+
   async update() {
     if (this.frameId % 5 === 0) {
       const hands = xb.user.hands;
-      if (hands != null && hands.hands && hands.hands.length == 2) {
+      if (hands != null && hands.hands && hands.hands.length > 0) {
         // Left hand.
-        const leftJoints = hands.hands[LEFT_HAND_INDEX].joints;
-        let leftHandResult = await this.#detectHandGestures(leftJoints);
-        leftHandResult = this.#shiftIndexIfNeeded(leftJoints, leftHandResult);
+        const leftHand = hands.hands[LEFT_HAND_INDEX];
+        if (leftHand && leftHand.joints) {
+          const leftJoints = leftHand.joints;
+          let leftHandResult = await this.#detectHandGestures(leftJoints);
+          leftHandResult = this.#shiftIndexIfNeeded(leftJoints, leftHandResult);
 
-        // Update image and label.
-        this.leftHandImage.load(GESTURE_IMAGES[leftHandResult]);
-        this.leftHandLabel.setText(GESTURE_LABELS[leftHandResult]);
+          // Update image and label.
+          this.leftHandImage.load(GESTURE_IMAGES[leftHandResult]);
+          this.leftHandLabel.setText(GESTURE_LABELS[leftHandResult]);
+          this.#publishGestureIfChanged("left", leftHandResult);
+        }
 
         // Right hand.
-        const rightJoints = hands.hands[RIGHT_HAND_INDEX].joints;
-        let rightHandResult = await this.#detectHandGestures(rightJoints);
-        rightHandResult = this.#shiftIndexIfNeeded(
-          rightJoints,
-          rightHandResult,
-        );
+        const rightHand = hands.hands[RIGHT_HAND_INDEX];
+        if (rightHand && rightHand.joints) {
+          const rightJoints = rightHand.joints;
+          let rightHandResult = await this.#detectHandGestures(rightJoints);
+          rightHandResult = this.#shiftIndexIfNeeded(
+            rightJoints,
+            rightHandResult,
+          );
 
-        // Update image and label.
-        this.rightHandImage.load(GESTURE_IMAGES[rightHandResult]);
-        this.rightHandLabel.setText(GESTURE_LABELS[rightHandResult]);
+          // Update image and label.
+          this.rightHandImage.load(GESTURE_IMAGES[rightHandResult]);
+          this.rightHandLabel.setText(GESTURE_LABELS[rightHandResult]);
+          this.#publishGestureIfChanged("right", rightHandResult);
+        }
       }
     }
     this.frameId++;

@@ -9,7 +9,7 @@ export class UIManager extends xb.Script {
   constructor() {
     super();
 
-    const imageTexture = new THREE.TextureLoader().load("heknow.jpg");
+    const imageTexture = new THREE.TextureLoader().load("./images/heknow.jpg");
     const imageMesh = new THREE.Mesh(
       new THREE.PlaneGeometry(0.8, 0.5),
       new THREE.MeshBasicMaterial({
@@ -28,7 +28,9 @@ export class UIManager extends xb.Script {
     this.imageMesh.visible = false;
     this.add(imageMesh);
 
-    const imageTexture2 = new THREE.TextureLoader().load("hedontknow.jpeg");
+    const imageTexture2 = new THREE.TextureLoader().load(
+      "./images/hedontknow.jpeg",
+    );
     const imageMesh2 = new THREE.Mesh(
       new THREE.PlaneGeometry(0.4, 0.25),
       new THREE.MeshBasicMaterial({
@@ -52,7 +54,7 @@ export class UIManager extends xb.Script {
     const grid = panel.addGrid();
     const imageRow = grid.addRow({ weight: 0.45 });
     imageRow.addImage({
-      src: "know.jpg",
+      src: "./images/know.jpg",
     });
 
     const question = grid.addRow({ weight: 0.25 }).addText({

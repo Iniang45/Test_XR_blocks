@@ -3,7 +3,8 @@ import * as xb from "xrblocks";
 import { UIManager } from "./UIManager.js";
 import { TestSuivi } from "./TestSuivi.js";
 import { ARVRSelector } from "./ARVRSelector.js";
-import { CustomGestureDemo } from "./CustomGesturesDemo.js";
+import { CustomGestureDemo } from "./Gestes/CustomGesturesDemo.js";
+import { DomainExpansion } from "./DomainExpansion.js";
 /**
  * Demonstrates how to use the XRTransition component to smoothly switch
  * between AR and VR backgrounds.
@@ -57,11 +58,12 @@ class MainScript extends xb.Script {
 
 document.addEventListener("DOMContentLoaded", function () {
   const options = new xb.Options().enableXRTransitions();
+  options.hands = { enabled: true, visualization: true };
   options.xrSessionMode = "immersive-ar";
-  console.log("Session mode set to:", options.xrSessionMode);
   //xb.add(new MainScript());
+
   xb.add(new UIManager());
-  xb.add(new ARVRSelector());
+  xb.add(new DomainExpansion());
   xb.add(new CustomGestureDemo());
   xb.init(options);
 });
