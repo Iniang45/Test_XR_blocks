@@ -1,26 +1,28 @@
 import * as THREE from "three";
 import * as xb from "xrblocks";
+import { PanelBinaire } from "./PanelBinaire.js";
+import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
+import { ImageInteractive } from "./ImageInteractive.js";
 /// A domain expansion effect that triggers when the user makes a specific gesture with both hands.
 // When activated, it transitions to a VR background, plays a sound, and displays a set of images in front of the user.
 // When the gesture is activated once again, it restores the previous AR/VR state.
-const TRIGGER_GESTURE_LABEL = "ROCK";
+const TRIGGER_GESTURE_LABEL = "VICTORY";
 const EFFECT_VR_COLOR = 0x000000;
 const DEFAULT_VR_COLOR = 0x202020;
-const PANEL_DISTANCE = 1.8;
+const PANEL_DISTANCE = 0.8;
 const H_SPACING = 0.9;
 const V_SPACING = 0.6;
 const SHOW_AFTER_VR_MS = 250;
+const TEST_TOGGLE_KEY = "KeyT";
 const IMAGE_PATHS = [
   "./images/gala.PNG",
   "./images/pm.jpg",
   "./images/pmjojo.jpg",
-  "./images/heryt.jpg",
 ];
 
 export class DomainExpansion extends xb.Script {
   constructor() {
     super();
-
     this.effectActive = false;
     this.lastTriggerState = false;
     this.savedState = null;
@@ -32,40 +34,49 @@ export class DomainExpansion extends xb.Script {
       left: "OTHER",
       right: "OTHER",
     };
+    this.soundPlayer = new SoundEffectPlayer("./images/get_out.mp3", {
+      loop: false,
+      volume: 0.5,
+    });
 
     this.panelGroup = new THREE.Group();
     this.panelGroup.visible = false;
     this.add(this.panelGroup);
 
+    this.textureLoader = new THREE.TextureLoader();
     this.planes = [];
-    const loader = new THREE.TextureLoader();
     IMAGE_PATHS.forEach((path) => {
-      const texture = loader.load(path);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        transparent: true,
-        toneMapped: false,
-        depthTest: false,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), material);
-      mesh.renderOrder = 2;
-      mesh.frustumCulled = false;
-      this.planes.push(mesh);
-      this.panelGroup.add(mesh);
+      this.ImageInteractive = new ImageInteractive(path);
+      this.ImageInteractive.panel.draggingMode = xb.DragMode.TRANSLATING;
+      this.planes.push(this.ImageInteractive.panel);
+      this.panelGroup.add(this.ImageInteractive.panel);
     });
+    const spawn = this.panelGroup.position.clone();
+    this.spawn = spawn;
+    this.panelBinaire = new PanelBinaire("./images/know.jpg", 0.8, 0.45);
+    this.panelBinaire.panel.draggingMode = xb.DragMode.TRANSLATING;
+    this.planes.push(this.panelBinaire.panel);
+    this.panelGroup.add(this.panelBinaire.panel);
+    this._setPanelsInteractive(false);
 
     this._onGestureChanged = this._onGestureChanged.bind(this);
+    this._onKeyDown = this._onKeyDown.bind(this);
     window.addEventListener("custom-gesture-changed", this._onGestureChanged);
+    window.addEventListener("keydown", this._onKeyDown);
   }
 
   _hookTransitionIfNeeded() {
-    if (this.transitionHooked || !xb.core.transition) return;
-
-    const originalToVR = xb.core.transition.toVR.bind(xb.core.transition);
-    xb.core.transition.toVR = (options = {}) => {
+    if (
+      this.transitionHooked ||
+      !xb.core.transition ||
+      typeof xb.core.transition.toVR !== "function" ||
+      typeof xb.core.transition.toAR !== "function"
+    ) {
+      return;
+    }
+    const transition = xb.core.transition;
+    const originalToVR = transition.toVR.bind(transition);
+    transition.toVR = (options = {}) => {
       if (typeof options.color === "number") {
         this.lastKnownVrColor = options.color;
       }
@@ -88,6 +99,29 @@ export class DomainExpansion extends xb.Script {
     );
   }
 
+  _onKeyDown(event) {
+    const tag = event.target?.tagName;
+    if (
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      event.target?.isContentEditable
+    ) {
+      return;
+    }
+    if (event.code === TEST_TOGGLE_KEY) {
+      this._toggleEffect();
+    }
+  }
+
+  _setPanelsInteractive(enabled) {
+    const activeLayer = 0;
+    const hiddenLayer = 1;
+    const targetLayer = enabled ? activeLayer : hiddenLayer;
+    this.panelGroup.traverse((node) => {
+      node.layers.set(targetLayer);
+    });
+  }
+
   _toggleEffect() {
     if (!xb.core.transition) return;
 
@@ -96,14 +130,16 @@ export class DomainExpansion extends xb.Script {
         mode: xb.core.transition.currentMode || "AR",
         vrColor: this.lastKnownVrColor,
       };
-
+      this.soundPlayer.joue();
       xb.core.transition.toVR({ color: EFFECT_VR_COLOR });
       this._placePanelsInFront();
       this.panelGroup.visible = false;
+      this._setPanelsInteractive(false);
       this.pendingPanelsShow = true;
       this.showPanelsAtMs = performance.now() + SHOW_AFTER_VR_MS;
       this.effectActive = true;
-      this.soundinit();
+      this.spawn = this.panelGroup.position.clone();
+      console.log("spawn updated:", this.spawn);
       return;
     }
 
@@ -117,6 +153,7 @@ export class DomainExpansion extends xb.Script {
       xb.core.transition.toVR({ color: state.vrColor ?? DEFAULT_VR_COLOR });
     }
     this.pendingPanelsShow = false;
+    this._setPanelsInteractive(false);
     this.panelGroup.visible = false;
     this.effectActive = false;
   }
@@ -159,18 +196,6 @@ export class DomainExpansion extends xb.Script {
       plane.lookAt(xb.camera.position.x, targetWorld.y, xb.camera.position.z);
     });
   }
-  soundinit() {
-    const listener = new THREE.AudioListener();
-    xb.camera.add(listener);
-    const sound = new THREE.Audio(listener);
-    const audioLoader = new THREE.AudioLoader();
-    audioLoader.load("./images/get_out.mp3", function (buffer) {
-      sound.setBuffer(buffer);
-      sound.setLoop(false);
-      sound.setVolume(0.5);
-      sound.play();
-    });
-  }
   update() {
     this._hookTransitionIfNeeded();
 
@@ -182,10 +207,27 @@ export class DomainExpansion extends xb.Script {
 
     if (this.effectActive && this.pendingPanelsShow) {
       if (performance.now() >= this.showPanelsAtMs) {
+        this._setPanelsInteractive(true);
         this.panelGroup.visible = true;
         this.pendingPanelsShow = false;
       }
     }
+
+    if (
+      this.effectActive &&
+      this.panelGroup.visible &&
+      this.panelBinaire?.panel
+    ) {
+      const panelWorldPos = new THREE.Vector3();
+      this.panelBinaire.panel.getWorldPosition(panelWorldPos);
+      this.panelBinaire.panel.lookAt(
+        xb.camera.position.x,
+        panelWorldPos.y,
+        xb.camera.position.z,
+      );
+    }
+
+    this.panelBinaire.update();
   }
 
   dispose() {
@@ -193,5 +235,6 @@ export class DomainExpansion extends xb.Script {
       "custom-gesture-changed",
       this._onGestureChanged,
     );
+    window.removeEventListener("keydown", this._onKeyDown);
   }
 }

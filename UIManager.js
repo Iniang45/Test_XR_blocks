@@ -11,7 +11,7 @@ export class UIManager extends xb.Script {
 
     const imageTexture = new THREE.TextureLoader().load("./images/heknow.jpg");
     const imageMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.8, 0.5),
+      new THREE.PlaneGeometry(0.4, 0.25),
       new THREE.MeshBasicMaterial({
         map: imageTexture,
         transparent: true,
@@ -19,11 +19,6 @@ export class UIManager extends xb.Script {
       }),
     );
     console.log("I just can't wait no more", xb.core);
-
-    const offsetImage = new THREE.Vector3(-0.8, 0, 0);
-    const offsetImage2 = new THREE.Vector3(0.8, 0, 0);
-    this.offsetImage = offsetImage;
-    this.offsetImage2 = offsetImage2;
     this.imageMesh = imageMesh;
     this.imageMesh.visible = false;
     this.add(imageMesh);
@@ -49,7 +44,6 @@ export class UIManager extends xb.Script {
       height: 0.15,
     });
     this.panel = panel;
-    console.log("Panel created:", panel);
     this.add(panel);
     const grid = panel.addGrid();
     const imageRow = grid.addRow({ weight: 0.45 });
@@ -83,32 +77,42 @@ export class UIManager extends xb.Script {
   }
 
   _onYes() {
-    if (!this.imageMesh.visible) {
-      this.imageMesh.visible = true;
-      this.imageMesh2.visible = false;
-      console.log("yes");
-      console.log(this.imageMesh.position.x);
+    this.imageMesh2.visible = false;
+    switch (this.imageMesh.visible) {
+      case true:
+        this.imageMesh.visible = false;
+        break;
+      case false:
+        this.imageMesh.visible = true;
+        break;
+      default:
+        break;
     }
+    console.log("yes");
   }
 
   _onNo() {
-    if (!this.imageMesh2.visible) {
-      this.imageMesh.visible = false;
-      this.imageMesh2.visible = true;
-      console.log("no");
+    this.imageMesh.visible = false;
+
+    switch (this.imageMesh2.visible) {
+      case true:
+        this.imageMesh2.visible = false;
+        break;
+      case false:
+        this.imageMesh2.visible = true;
+        break;
+      default:
+        break;
     }
+    console.log("no");
   }
-  acote(enfant, valeurX, valeurY, valeurZ, parent) {
-    enfant.position.set(
-      parent.position.x + valeurX,
-      parent.position.y + valeurY,
-      parent.position.z + valeurZ,
-    );
-    enfant.lookAt(
-      xb.camera.position.x,
-      parent.position.y,
-      xb.camera.position.z,
-    );
+  acote(enfant, valeurX, valeurY, valeurZ, parent, largeur) {
+    const localOffset = new THREE.Vector3(valeurX, valeurY, valeurZ);
+    const worldOffset = localOffset.applyQuaternion(parent.quaternion);
+    enfant.position.copy(parent.position).add(worldOffset);
+    enfant.quaternion.copy(parent.quaternion);
+    enfant.layers.set(0);
+    enfant.scale.set(largeur.x, largeur.y, largeur.z);
   }
   update(dt) {
     const viewDirection = new THREE.Vector3();
@@ -117,8 +121,8 @@ export class UIManager extends xb.Script {
     viewDirection.normalize();
     const targetPos = new THREE.Vector3().copy(xb.camera.position);
     targetPos.addScaledVector(viewDirection, 0.6);
-    targetPos.y -= 0.6; // Adjust height if needed
-    targetPos.z += viewDirection.z > 0 ? -0.35 : 0.35;
+    targetPos.y -= 1; // Adjust height if needed
+    //targetPos.z += viewDirection.z > 0 ? -0.35 : 0.35;
     this.panel.position.set(targetPos.x, targetPos.y, targetPos.z);
     this.panel.lookAt(
       xb.camera.position.x,
@@ -128,12 +132,19 @@ export class UIManager extends xb.Script {
     this.panel.rotateX(-70);
     this.acote(
       this.imageMesh,
-      this.offsetImage.x,
-      this.offsetImage.y,
-      this.offsetImage.z,
+      -0.15,
+      0.2,
+      0,
       this.panel,
+      new THREE.Vector3(0.5, 0.5, 0.5),
     );
-    this.imageMesh2.position.set(this.panel.position + this.offsetImage2);
-    //console.log("Montre toi ", xb.core.transition.currentMode);
+    this.acote(
+      this.imageMesh2,
+      0.15,
+      0.2,
+      0,
+      this.panel,
+      new THREE.Vector3(0.5, 0.5, 0.5),
+    );
   }
 }

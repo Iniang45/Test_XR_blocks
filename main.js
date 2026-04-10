@@ -5,33 +5,69 @@ import { TestSuivi } from "./TestSuivi.js";
 import { ARVRSelector } from "./ARVRSelector.js";
 import { CustomGestureDemo } from "./Gestes/CustomGesturesDemo.js";
 import { DomainExpansion } from "./DomainExpansion.js";
-/**
- * Demonstrates how to use the XRTransition component to smoothly switch
- * between AR and VR backgrounds.
- */
-class MainScript extends xb.Script {
-  init() {
-    this.add(new THREE.HemisphereLight(0xffffff, 0x666666, /*intensity=*/ 3));
+import { PanelBinaire } from "./PanelBinaire.js";
+import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
+import { Livre } from "./Livre.js";
+class SceneTransition extends xb.Script {
+  constructor() {
+    super();
+    this.currentMode = "AR";
+    this.transitionTime = 0.5;
+    this.targetOpacity = 0;
 
-    const geometry = new THREE.CylinderGeometry(
-      0.2,
-      0.2,
-      0.4,
-      /*segments=*/ 32,
-    );
-    const material = new THREE.MeshPhongMaterial({
-      color: 0xffffff,
+    const geometry = new THREE.SphereGeometry(1, 64, 32);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x000000,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0,
+      depthTest: false,
+      depthWrite: false,
+      side: THREE.BackSide,
     });
-    this.cylinder = new THREE.Mesh(geometry, material);
-    this.cylinder.position.set(
-      0,
-      xb.core.user.height - 0.5,
-      -xb.core.user.objectDistance,
-    );
-    this.add(this.cylinder);
+    this.fader = new THREE.Mesh(geometry, material);
+    this.fader.renderOrder = -Infinity;
+    this.fader.frustumCulled = false;
+    this.fader.raycast = () => {};
+    this.add(this.fader);
   }
+
+  toVR({ color = 0x000000 } = {}) {
+    this.currentMode = "VR";
+    this.fader.material.color.set(color);
+    this.targetOpacity = 1;
+  }
+
+  toAR() {
+    this.currentMode = "AR";
+    this.targetOpacity = 0;
+  }
+
+  update() {
+    this.position.copy(xb.camera.position);
+    this.fader.position.set(0, 0, 0);
+    this.layers.set(0);
+    const currentOpacity = this.fader.material.opacity;
+    if (currentOpacity === this.targetOpacity) {
+      return;
+    }
+
+    const lerpFactor = Math.min(1, 0.016 / this.transitionTime);
+    const nextOpacity = THREE.MathUtils.lerp(
+      currentOpacity,
+      this.targetOpacity,
+      lerpFactor,
+    );
+    this.fader.material.opacity =
+      Math.abs(nextOpacity - this.targetOpacity) < 0.01
+        ? this.targetOpacity
+        : nextOpacity;
+  }
+}
+
+const options = new xb.Options();
+options.enableUI();
+class MainScript extends xb.Script {
+  init() {}
 
   /**
    * On pinch, toggle between AR and VR modes and update cylinder color.
@@ -57,13 +93,16 @@ class MainScript extends xb.Script {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  const options = new xb.Options().enableXRTransitions();
   options.hands = { enabled: true, visualization: true };
-  options.xrSessionMode = "immersive-ar";
-  //xb.add(new MainScript());
+  //options.xrSessionMode = "immersive-ar";
 
+  xb.core.transition = new SceneTransition();
+  xb.add(xb.core.transition);
+  xb.add(new Livre());
   xb.add(new UIManager());
   xb.add(new DomainExpansion());
   xb.add(new CustomGestureDemo());
+  //xb.add(new PanelBinaire("./images/know.jpg", 1, 0.6));
+  //xb.add(new TestSuivi());
   xb.init(options);
 });
