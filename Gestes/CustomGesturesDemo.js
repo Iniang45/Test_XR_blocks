@@ -45,7 +45,7 @@ export class CustomGestureDemo extends xb.Script {
     {
       // Make a root panel>grid>row>controlPanel>grid
       const panel = new xb.SpatialPanel({ backgroundColor: "#00000000" });
-      panel.position.set(2, 0, 0);
+      panel.position.set(0, 0, 0);
       this.add(panel);
 
       const grid = panel.addGrid();

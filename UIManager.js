@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import * as xb from "xrblocks";
-
+import { Line } from "./Line.js";
 /**
  * Rending a draggable spatial UI panel with SDF font libraries, and icons
  * buttons using XR Blocks.
@@ -88,12 +88,24 @@ export class UIManager extends xb.Script {
       default:
         break;
     }
+    const line = new Line(this.imageMesh, this.panel, {
+      color: 0xff0000,
+      width: 5,
+    });
+    this.line = line;
+    this.add(line);
     console.log("yes");
+    console.log("are yo strong because i am a line", this.panel.position);
   }
 
   _onNo() {
     this.imageMesh.visible = false;
 
+    if (this.line != null) {
+      console.log("that's how loser thinks", this.line);
+      this.line.supp();
+      this.line = null;
+    }
     switch (this.imageMesh2.visible) {
       case true:
         this.imageMesh2.visible = false;
@@ -120,7 +132,7 @@ export class UIManager extends xb.Script {
     viewDirection.y = 0; // Keep the panel level by ignoring vertical camera direction
     viewDirection.normalize();
     const targetPos = new THREE.Vector3().copy(xb.camera.position);
-    targetPos.addScaledVector(viewDirection, 0.6);
+    targetPos.addScaledVector(viewDirection, 0.4);
     targetPos.y -= 1; // Adjust height if needed
     //targetPos.z += viewDirection.z > 0 ? -0.35 : 0.35;
     this.panel.position.set(targetPos.x, targetPos.y, targetPos.z);

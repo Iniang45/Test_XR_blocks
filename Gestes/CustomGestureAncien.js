@@ -44,7 +44,7 @@ const UNKNOWN_GESTURE = 8;
  * A demo scene that uses a custom ML model to detect and display static hand
  * gestures for both hands in real-time.
  */
-export class CustomGestureDemo extends xb.Script {
+export class CustomGestureAncien extends xb.Script {
   constructor() {
     super();
 
@@ -186,7 +186,8 @@ export class CustomGestureDemo extends xb.Script {
 
       // Makes LiteRt use the same GPU device as TF.js (for tensor conversion).
       const backend = tf.backend();
-      setWebGpuDevice(backend.device);
+      console.log("WebGPU backend:", backend);
+      setWebGpuDevice(backend.device, backend.adapterInfo);
 
       // Loads model via LiteRt.
       await this.loadModel(liteRt);

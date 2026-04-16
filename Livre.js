@@ -5,15 +5,16 @@ const kLightX = xb.getUrlParamFloat("lightX", 0);
 const kLightY = xb.getUrlParamFloat("lightY", 500);
 const kLightZ = xb.getUrlParamFloat("lightZ", -10);
 const TRIGGER_GESTURE_LABEL = "ROCK";
-const TRIGGER_GESTURE_LABEL_2 = "THUMB UP";
+const TRIGGER_GESTURE_LABEL_2 = "VICTORY";
 const TEST_TOGGLE_KEY = "KeyJ";
 const TEST_REPULSE_KEY = "KeyK";
-const ATTRACT_DISTANCE = 0.7;
+const ATTRACT_DISTANCE = 0.4;
 const ATTRACT_MOVE_MS = 900;
 export class Livre extends xb.Script {
   constructor() {
     super();
     this.model = null;
+    this.isOpen = false;
     this.lastTriggerState = false;
     this.isMovingToUser = false;
     this.isMovingBack = false;
@@ -30,6 +31,9 @@ export class Livre extends xb.Script {
       left: "OTHER",
       right: "OTHER",
     };
+    this.lastActionTime = 0;
+    this.actionCooldownMs = 3000;
+    this.preAttractRotation = new THREE.Quaternion();
     this._onGestureChanged = this._onGestureChanged.bind(this);
     this._onKeyDown = this._onKeyDown.bind(this);
     window.addEventListener("custom-gesture-changed", this._onGestureChanged);
@@ -79,60 +83,72 @@ export class Livre extends xb.Script {
   }
 
   attract() {
+    const now = performance.now();
     if (
       !this.model ||
       this.isMovingToUser ||
       this.isMovingBack ||
       this.isAnimatingToOpen ||
-      this.isAnimatingToClose
+      this.isAnimatingToClose ||
+      now - this.lastActionTime < this.actionCooldownMs
     ) {
       return;
     }
-
-    const now = performance.now();
-    const forward = new THREE.Vector3();
-    xb.camera.getWorldDirection(forward);
-    forward.normalize();
-
-    const targetWorld = new THREE.Vector3().copy(xb.camera.position);
-    targetWorld.addScaledVector(forward, ATTRACT_DISTANCE);
-    targetWorld.y = xb.camera.position.y - 0.08;
+    const targetWorld = this.targetWorldCalcul();
 
     const targetLocal = this.worldToLocal(targetWorld.clone());
     this.preAttractPos.copy(this.model.position);
+    this.preAttractRotation.copy(this.model.quaternion);
     this.moveStartPos.copy(this.model.position);
     this.moveTargetPos.copy(targetLocal);
     this.moveStartMs = now;
     this.isMovingToUser = true;
+    this.lastActionTime = now;
+  }
+  targetWorldCalcul() {
+    const forward = new THREE.Vector3();
+    xb.camera.getWorldDirection(forward);
+    forward.normalize();
+    const targetProv = new THREE.Vector3().copy(xb.camera.position);
+    targetProv.addScaledVector(forward, ATTRACT_DISTANCE * 0.45);
+    targetProv.y = xb.camera.position.y - 0.32;
+    return targetProv;
   }
 
   repulse() {
+    const now = performance.now();
     if (
       !this.model ||
       this.isMovingToUser ||
       this.isMovingBack ||
       this.isAnimatingToOpen ||
-      this.isAnimatingToClose
+      this.isAnimatingToClose ||
+      now - this.lastActionTime < this.actionCooldownMs
     ) {
       return;
     }
+
     this._startCloseAnimation();
+    this.model.quaternion.copy(this.preAttractRotation);
+    this.lastActionTime = now;
   }
-  startAnimation(timeScale = null, time = 0, paused = false) {
+  startAnimation(timeScale = null, time = 0, paused = false, clipName = null) {
     let maxDuration = 0;
     this.model.clipActions.forEach((action) => {
-      const duration = action.getClip().duration;
-      const targetTime = time === 0 ? 0 : duration;
-      maxDuration = Math.max(maxDuration, duration);
-      action.reset();
-      action.setLoop(THREE.LoopOnce, 1);
-      action.clampWhenFinished = true;
-      if (timeScale !== null) {
-        action.timeScale = timeScale;
+      if (clipName && clipName == action._clip.name) {
+        const duration = action.getClip().duration;
+        const targetTime = time === 0 ? 0 : duration;
+        maxDuration = Math.max(maxDuration, duration);
+        action.reset();
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true;
+        if (timeScale !== null) {
+          action.timeScale = timeScale;
+        }
+        action.time = targetTime;
+        action.play();
+        action.paused = paused;
       }
-      action.time = targetTime;
-      action.play();
-      action.paused = paused;
     });
     this.animationDurationMs = maxDuration * 1000;
     this.animationStartMs = performance.now();
@@ -143,7 +159,7 @@ export class Livre extends xb.Script {
     }
     this.isAnimatingToClose = false;
     this.isAnimatingToOpen = true;
-    this.startAnimation(-1, 1);
+    this.startAnimation(-1, 1, false, "Open_Book");
     this.soundeffect.joue();
   }
 
@@ -151,31 +167,35 @@ export class Livre extends xb.Script {
     if (!this.model || this.model.clipActions.length === 0) {
       return;
     }
+    this.model.rotation.x = 0;
     this.isAnimatingToOpen = false;
     this.isAnimatingToClose = true;
-    this.startAnimation(1);
+    this.startAnimation(1, 0, false, "Open_Book");
+    this.isOpen = false;
   }
   freeze(time) {
     this.model.clipActions.forEach((action) => {
-      const targetTime = time === 0 ? 0 : action.getClip().duration;
-      action.timeScale = 1;
-      action.time = targetTime;
-      action.play();
-      action.paused = true;
+      if (action._clip.name == "Open_Book") {
+        const targetTime = time === 0 ? 0 : action.getClip().duration;
+        action.timeScale = 1;
+        action.time = targetTime;
+        action.play();
+        action.paused = true;
+      }
     });
   }
   _freezeOnFirstFrame() {
     if (!this.model) {
       return;
     }
-    this.freeze(0);
+    this.freeze(1);
   }
 
   _freezeOnLastFrame() {
     if (!this.model) {
       return;
     }
-    this.freeze(1);
+    this.freeze(0);
   }
 
   addLights() {
@@ -192,13 +212,28 @@ export class Livre extends xb.Script {
     await model.loadGLTFModel({
       data: {
         scale: { x: 1, y: 1, z: 1 },
-        path: "./objects3D/S_Book.glb",
+        path: "./objects3D/S_Book_super.glb",
       },
       renderer: xb.core.renderer,
     });
     this.model = model;
-    this.startAnimation(null, 1, true);
+    console.log("Or else... Or else...", model);
+    console.log(
+      "Model loaded: raaaaahahahahahahah",
+      model.children[0].children[0].children,
+    );
+    const lesParties = model.children[0].children[0].children;
+    //this.model.rotationRaycastMesh.draggingMode = "DO_NOT_DRAG";
+    console.log("Les parties du livre", this.model.rotationRaycastMesh);
+    this.changementTexture("./images/gala.PNG", lesParties[1]);
+    this.startAnimation(null, 0, false, "Open_Book");
     model.position.set(0, 0.78, -1.1);
+  }
+  changementTexture(path, objet) {
+    const textureLoader = new THREE.TextureLoader();
+    const newTexture = textureLoader.load(path);
+    objet.material.map = newTexture;
+    objet.material.needsUpdate = true;
   }
   update() {
     const isAttracting = this._isTriggerGestureActive();
@@ -224,14 +259,21 @@ export class Livre extends xb.Script {
 
       const modelWorldPos = new THREE.Vector3();
       this.model.getWorldPosition(modelWorldPos);
+      const lookAtHeight = xb.camera.position.y + 0.15;
       this.model.lookAt(
         xb.camera.position.x,
-        modelWorldPos.y,
+        lookAtHeight,
         xb.camera.position.z,
       );
 
       if (t >= 1) {
         this.isMovingToUser = false;
+        this.model.lookAt(
+          xb.camera.position.x,
+          lookAtHeight,
+          xb.camera.position.z,
+        );
+        //this.model.rotation.x = THREE.MathUtils.degToRad(-30);
         this._startOpenAnimation();
       }
     }
@@ -248,6 +290,7 @@ export class Livre extends xb.Script {
       );
 
       if (t >= 1) {
+        this.model.quaternion.copy(this.preAttractRotation);
         this.isMovingBack = false;
       }
     }
@@ -256,15 +299,21 @@ export class Livre extends xb.Script {
       const elapsed = performance.now() - this.animationStartMs;
       if (elapsed >= this.animationDurationMs) {
         this.isAnimatingToOpen = false;
-        this._freezeOnFirstFrame();
+        this.isOpen = true;
+        this._freezeOnLastFrame();
       }
+    }
+
+    if (this.model && this.isOpen) {
+      const targetWorld = this.targetWorldCalcul();
+      this.model.position.set(targetWorld.x, targetWorld.y, targetWorld.z);
     }
 
     if (this.model && this.isAnimatingToClose) {
       const elapsed = performance.now() - this.animationStartMs;
       if (elapsed >= this.animationDurationMs) {
         this.isAnimatingToClose = false;
-        this._freezeOnLastFrame();
+        this._freezeOnFirstFrame();
         this.moveStartPos.copy(this.model.position);
         this.moveTargetPos.copy(this.preAttractPos);
         this.moveStartMs = performance.now();

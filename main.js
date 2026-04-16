@@ -8,6 +8,7 @@ import { DomainExpansion } from "./DomainExpansion.js";
 import { PanelBinaire } from "./PanelBinaire.js";
 import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
 import { Livre } from "./Livre.js";
+import { CustomGestureAncien } from "./Gestes/CustomGestureAncien.js";
 class SceneTransition extends xb.Script {
   constructor() {
     super();
@@ -100,8 +101,9 @@ document.addEventListener("DOMContentLoaded", function () {
   xb.add(xb.core.transition);
   xb.add(new Livre());
   xb.add(new UIManager());
-  xb.add(new DomainExpansion());
+  //xb.add(new DomainExpansion());
   xb.add(new CustomGestureDemo());
+  //xb.add(new CustomGestureAncien());
   //xb.add(new PanelBinaire("./images/know.jpg", 1, 0.6));
   //xb.add(new TestSuivi());
   xb.init(options);

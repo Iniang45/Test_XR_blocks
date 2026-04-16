@@ -9,15 +9,15 @@ import { ImageInteractive } from "./ImageInteractive.js";
 const TRIGGER_GESTURE_LABEL = "VICTORY";
 const EFFECT_VR_COLOR = 0x000000;
 const DEFAULT_VR_COLOR = 0x202020;
-const PANEL_DISTANCE = 0.8;
+const PANEL_DISTANCE = 1.2;
 const H_SPACING = 0.9;
 const V_SPACING = 0.6;
 const SHOW_AFTER_VR_MS = 250;
 const TEST_TOGGLE_KEY = "KeyT";
 const IMAGE_PATHS = [
   "./images/gala.PNG",
-  "./images/pm.jpg",
-  "./images/pmjojo.jpg",
+  "./images/2023_Studiiio.png",
+  "./images/2023_Studiiio.png",
 ];
 
 export class DomainExpansion extends xb.Script {
@@ -46,10 +46,10 @@ export class DomainExpansion extends xb.Script {
     this.textureLoader = new THREE.TextureLoader();
     this.planes = [];
     IMAGE_PATHS.forEach((path) => {
-      this.ImageInteractive = new ImageInteractive(path);
-      this.ImageInteractive.panel.draggingMode = xb.DragMode.TRANSLATING;
-      this.planes.push(this.ImageInteractive.panel);
-      this.panelGroup.add(this.ImageInteractive.panel);
+      const imageInteractive = new ImageInteractive(path);
+      imageInteractive.panel.draggingMode = xb.DragMode.TRANSLATING;
+      this.planes.push(imageInteractive.panel);
+      this.panelGroup.add(imageInteractive.panel);
     });
     const spawn = this.panelGroup.position.clone();
     this.spawn = spawn;
@@ -139,7 +139,6 @@ export class DomainExpansion extends xb.Script {
       this.showPanelsAtMs = performance.now() + SHOW_AFTER_VR_MS;
       this.effectActive = true;
       this.spawn = this.panelGroup.position.clone();
-      console.log("spawn updated:", this.spawn);
       return;
     }
 
@@ -176,6 +175,11 @@ export class DomainExpansion extends xb.Script {
 
     this.panelGroup.position.copy(center);
     this.panelGroup.quaternion.identity();
+    this.panelGroup.lookAt(
+      xb.camera.position.x,
+      center.y,
+      xb.camera.position.z,
+    );
 
     const count = this.planes.length;
     const columns = Math.ceil(Math.sqrt(count));
@@ -192,9 +196,11 @@ export class DomainExpansion extends xb.Script {
       const localTarget = this.panelGroup.worldToLocal(targetWorld.clone());
 
       plane.position.copy(localTarget);
-      plane.up.set(0, 1, 0);
+      //plane.up.set(0, 1, 0);
       plane.lookAt(xb.camera.position.x, targetWorld.y, xb.camera.position.z);
     });
+    console.log(`Plane positioned at`, this.panelGroup.position);
+    console.log("camera position:", xb.camera.position);
   }
   update() {
     this._hookTransitionIfNeeded();
@@ -212,7 +218,7 @@ export class DomainExpansion extends xb.Script {
         this.pendingPanelsShow = false;
       }
     }
-
+    /*
     if (
       this.effectActive &&
       this.panelGroup.visible &&
@@ -226,7 +232,7 @@ export class DomainExpansion extends xb.Script {
         xb.camera.position.z,
       );
     }
-
+   */
     this.panelBinaire.update();
   }
 
