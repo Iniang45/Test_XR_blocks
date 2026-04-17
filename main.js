@@ -67,6 +67,40 @@ class SceneTransition extends xb.Script {
 
 const options = new xb.Options();
 options.enableUI();
+
+const items = [
+  {
+    name: "hey",
+    imagePath: "./images/heryt.jpg",
+    soundPath: "./sounds/get_out.mp3",
+  },
+  {
+    name: "galaP",
+    imagePath: "./images/gala.PNG",
+    soundPath: "./sounds/galaPAudio.wav",
+  },
+  {
+    name: "galaC",
+    imagePath: "./images/GalaC.png",
+    soundPath: "./sounds/galaCAudio.wav",
+  },
+  {
+    name: "galaWA",
+    imagePath: "./images/galaWA.png",
+    soundPath: "./sounds/galaWAAudio.wav",
+  },
+  {
+    name: "galaR",
+    imagePath: "./images/galaR.jpg",
+    soundPath: "./sounds/galaRAudio.wav",
+  },
+  {
+    name: "galaW",
+    imagePath: "./images/galaW.jpeg",
+    soundPath: "./sounds/galaWAudio.wav",
+  },
+];
+
 class MainScript extends xb.Script {
   init() {}
 
@@ -99,7 +133,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   xb.core.transition = new SceneTransition();
   xb.add(xb.core.transition);
-  xb.add(new Livre());
+  xb.add(new Livre(items));
   xb.add(new UIManager());
   //xb.add(new DomainExpansion());
   xb.add(new CustomGestureDemo());
