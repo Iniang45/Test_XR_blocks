@@ -9,6 +9,7 @@ import { PanelBinaire } from "./PanelBinaire.js";
 import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
 import { Livre } from "./Livre.js";
 import { CustomGestureAncien } from "./Gestes/CustomGestureAncien.js";
+import { CarouselMenu } from "./CarouselMenu.js";
 class SceneTransition extends xb.Script {
   constructor() {
     super();
@@ -101,6 +102,11 @@ const items = [
   },
 ];
 
+const carouselItems = items.map((item, index) => ({
+  title: item.name || `Item ${index + 1}`,
+  image: item.imagePath,
+}));
+
 class MainScript extends xb.Script {
   init() {}
 
@@ -133,8 +139,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
   xb.core.transition = new SceneTransition();
   xb.add(xb.core.transition);
-  xb.add(new Livre(items));
-  xb.add(new UIManager());
+  //xb.add(new Livre(items));
+  //xb.add(new UIManager());
+  xb.add(
+    new CarouselMenu(carouselItems, {
+      startEnabled: false,
+      extractSoundPath: "./Sounds/skeleton.mp3",
+    }),
+  );
   //xb.add(new DomainExpansion());
   xb.add(new CustomGestureDemo());
   //xb.add(new CustomGestureAncien());
