@@ -11,6 +11,7 @@ export class CarouselExtractedPanel extends xb.Script {
     this.item = item;
     this.onClose = onClose;
     this.onPlaySound = onPlaySound;
+    this.targetYaw = 0;
 
     const panel = new xb.SpatialPanel({
       backgroundColor: "#00000000",
@@ -65,11 +66,16 @@ export class CarouselExtractedPanel extends xb.Script {
     this.panel.position.copy(position);
   }
 
+  setTargetYaw(yaw) {
+    this.targetYaw = yaw;
+    this.panel.rotation.set(0, this.targetYaw, 0);
+  }
+
   faceCamera() {
-    this.panel.rotation.set(0, 0, 0);
+    this.panel.rotation.set(0, this.targetYaw, 0);
   }
 
   lockUpright() {
-    this.panel.rotation.set(0, 0, 0);
+    this.panel.rotation.set(0, this.targetYaw, 0);
   }
 }

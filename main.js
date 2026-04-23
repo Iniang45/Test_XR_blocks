@@ -71,40 +71,43 @@ options.enableUI();
 
 const items = [
   {
-    name: "hey",
-    imagePath: "./images/heryt.jpg",
+    name: "Accueil",
+    imagePath: "./images/icons/home.svg",
     soundPath: "./sounds/get_out.mp3",
   },
   {
-    name: "galaP",
-    imagePath: "./images/gala.PNG",
+    name: "Recherche",
+    imagePath: "./images/icons/search.svg",
     soundPath: "./sounds/galaPAudio.wav",
   },
   {
-    name: "galaC",
-    imagePath: "./images/GalaC.png",
+    name: "Categories",
+    imagePath: "./images/icons/grid.svg",
     soundPath: "./sounds/galaCAudio.wav",
   },
   {
-    name: "galaWA",
-    imagePath: "./images/galaWA.png",
+    name: "Notifications",
+    imagePath: "./images/icons/bell.svg",
     soundPath: "./sounds/galaWAAudio.wav",
   },
   {
-    name: "galaR",
-    imagePath: "./images/galaR.jpg",
+    name: "Son",
+    imagePath: "./images/icons/sound.svg",
     soundPath: "./sounds/galaRAudio.wav",
+    kind: "sound",
   },
   {
-    name: "galaW",
-    imagePath: "./images/galaW.jpeg",
+    name: "Affichage",
+    imagePath: "./images/icons/display.svg",
     soundPath: "./sounds/galaWAudio.wav",
+    kind: "display",
   },
 ];
 
 const carouselItems = items.map((item, index) => ({
   title: item.name || `Item ${index + 1}`,
   image: item.imagePath,
+  kind: item.kind || "generic",
 }));
 
 class MainScript extends xb.Script {
@@ -141,13 +144,17 @@ document.addEventListener("DOMContentLoaded", function () {
   xb.add(xb.core.transition);
   //xb.add(new Livre(items));
   //xb.add(new UIManager());
+  /*
+
   xb.add(
     new CarouselMenu(carouselItems, {
       startEnabled: false,
       extractSoundPath: "./Sounds/skeleton.mp3",
     }),
   );
-  //xb.add(new DomainExpansion());
+
+  */
+  xb.add(new DomainExpansion());
   xb.add(new CustomGestureDemo());
   //xb.add(new CustomGestureAncien());
   //xb.add(new PanelBinaire("./images/know.jpg", 1, 0.6));

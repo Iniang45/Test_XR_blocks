@@ -296,7 +296,6 @@ export class Livre extends xb.Script {
     var pageActuelle = 0;
     this.pageActuelle = pageActuelle;
     this.model.rotationRaycastMesh.draggingMode = "DO_NOT_DRAG";
-
     this.changementTexture(
       this.pages[this.pageActuelle]["imagePath"],
       lesParties[1],

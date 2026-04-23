@@ -2,6 +2,8 @@ import * as THREE from "three";
 import * as xb from "xrblocks";
 import { CarouselItemCard } from "./CarouselItemCard.js";
 import { CarouselExtractedPanel } from "./CarouselExtractedPanel.js";
+import { CarouselSoundPanel } from "./CarouselSoundPanel.js";
+import { CarouselDisplayPanel } from "./CarouselDisplayPanel.js";
 import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
 
 const TOGGLE_KEY = "KeyM";
@@ -30,6 +32,7 @@ export class CarouselMenu extends xb.Script {
     this.spawnDistance = options.spawnDistance ?? 1.55;
     this.spawnHeightOffset = options.spawnHeightOffset ?? -0.08;
     this.rootYaw = 0;
+    this.controlsPrevLocalPos = null;
 
     this.lastToggleTime = 0;
     this.lastGestureToggleState = false;
@@ -63,6 +66,7 @@ export class CarouselMenu extends xb.Script {
       width: 0.58,
       height: 0.16,
     });
+    controlsPanel.draggingMode = xb.DragMode.TRANSLATING;
     this.controlsPanel = controlsPanel;
     this.add(controlsPanel);
 
@@ -90,6 +94,12 @@ export class CarouselMenu extends xb.Script {
       backgroundColor: "#264653",
     });
     rightButton.onTriggered = () => this.next();
+
+    const orbiter = controlsGrid.addOrbiter();
+    orbiter.addExitButton();
+
+    // If the user drags this panel, transfer the delta to the whole carousel root.
+    this.controlsBaseOffset = new THREE.Vector3(0, -0.34, 0.48);
   }
 
   _buildCards() {
@@ -167,13 +177,24 @@ export class CarouselMenu extends xb.Script {
 
   prev() {
     if (!this.menuEnabled || this.cards.length === 0) return;
-    this.currentIndex =
-      (this.currentIndex - 1 + this.cards.length) % this.cards.length;
+    const active = this._getActiveIndices();
+    if (active.length === 0) return;
+
+    let pos = active.indexOf(this.currentIndex);
+    if (pos === -1) pos = 0;
+    const nextPos = (pos - 1 + active.length) % active.length;
+    this.currentIndex = active[nextPos];
   }
 
   next() {
     if (!this.menuEnabled || this.cards.length === 0) return;
-    this.currentIndex = (this.currentIndex + 1) % this.cards.length;
+    const active = this._getActiveIndices();
+    if (active.length === 0) return;
+
+    let pos = active.indexOf(this.currentIndex);
+    if (pos === -1) pos = 0;
+    const nextPos = (pos + 1) % active.length;
+    this.currentIndex = active[nextPos];
   }
 
   extract(index) {
@@ -185,27 +206,53 @@ export class CarouselMenu extends xb.Script {
 
     this.extractSound.joue();
 
-    const extracted = new CarouselExtractedPanel(
+    let PanelClass = CarouselExtractedPanel;
+    if (item.kind === "sound") {
+      PanelClass = CarouselSoundPanel;
+    } else if (item.kind === "display") {
+      PanelClass = CarouselDisplayPanel;
+    }
+
+    const extracted = new PanelClass(
       item,
       () => this.closeExtracted(index),
       () => this.extractSound.joue(),
     );
 
     this.extractedPanels.set(index, extracted);
-    this.add(extracted);
-    extracted.setTargetPosition(new THREE.Vector3(0.42, 0.1, 0.18));
+    if (this.parent) {
+      this.parent.add(extracted);
+    } else {
+      this.add(extracted);
+    }
+
+    // Spawn extracted panel in world space near the carousel.
+    const worldSpawn = this.localToWorld(new THREE.Vector3(0.42, 0.1, 0.18));
+    extracted.setTargetPosition(worldSpawn);
+    extracted.setTargetYaw(this.rootYaw);
     this.cards[index].applyVisibility(false);
+
+    const active = this._getActiveIndices();
+    if (active.length > 0 && this.currentIndex === index) {
+      this.currentIndex = active[0];
+    }
   }
 
   closeExtracted(index) {
     const panel = this.extractedPanels.get(index);
     if (!panel) return;
 
-    this.remove(panel);
+    if (panel.parent) {
+      panel.parent.remove(panel);
+    }
     this.extractedPanels.delete(index);
 
     if (this.menuEnabled && this.cards[index]) {
       this.cards[index].applyVisibility(true);
+    }
+
+    if (this.currentIndex === index) {
+      this.currentIndex = index;
     }
   }
 
@@ -216,12 +263,37 @@ export class CarouselMenu extends xb.Script {
     return delta;
   }
 
+  _getActiveIndices() {
+    const active = [];
+    for (let i = 0; i < this.cards.length; i++) {
+      if (!this.extractedPanels.has(i)) {
+        active.push(i);
+      }
+    }
+    return active;
+  }
+
   _layoutCards() {
-    const total = this.cards.length;
-    if (total === 0) return;
+    const active = this._getActiveIndices();
+    if (active.length === 0) {
+      this.cards.forEach((card) => card.applyVisibility(false));
+      return;
+    }
+
+    let centerPos = active.indexOf(this.currentIndex);
+    if (centerPos === -1) {
+      centerPos = 0;
+      this.currentIndex = active[0];
+    }
 
     this.cards.forEach((card, index) => {
-      const delta = this._getCircularDelta(index, this.currentIndex, total);
+      const activePos = active.indexOf(index);
+      if (activePos === -1) {
+        card.applyVisibility(false);
+        return;
+      }
+
+      const delta = this._getCircularDelta(activePos, centerPos, active.length);
       const hiddenByRange = Math.abs(delta) > this.visibleSpan;
       if (hiddenByRange) {
         card.applyVisibility(false);
@@ -241,8 +313,7 @@ export class CarouselMenu extends xb.Script {
         : Math.max(this.normalScale - sideScalePenalty, 0.5);
       const targetYaw = 0;
 
-      const hiddenBecauseExtracted = this.extractedPanels.has(index);
-      card.applyVisibility(this.menuEnabled && !hiddenBecauseExtracted);
+      card.applyVisibility(this.menuEnabled);
       card.setTarget(target, targetScale, isSelected, targetYaw);
     });
   }
@@ -267,9 +338,31 @@ export class CarouselMenu extends xb.Script {
     this.rotation.set(0, this.rootYaw, 0);
 
     if (this.controlsPanel) {
-      this.controlsPanel.position.set(0, -0.34, 0.48);
+      this.controlsPanel.position.copy(this.controlsBaseOffset);
       this.controlsPanel.rotation.set(0, 0, 0);
+      this.controlsPrevLocalPos = this.controlsPanel.position.clone();
     }
+  }
+
+  _syncRootFromControlsPanel() {
+    if (!this.controlsPanel) return;
+
+    if (!this.controlsPrevLocalPos) {
+      this.controlsPrevLocalPos = this.controlsPanel.position.clone();
+      return;
+    }
+
+    const localDelta = this.controlsPanel.position
+      .clone()
+      .sub(this.controlsPrevLocalPos);
+
+    if (localDelta.lengthSq() < 1e-8) return;
+
+    const worldDelta = localDelta.applyQuaternion(this.quaternion);
+    this.position.add(worldDelta);
+
+    this.controlsPrevLocalPos.copy(this.controlsPanel.position);
+    this.controlsPanel.rotation.set(0, 0, 0);
   }
 
   update() {
@@ -288,6 +381,8 @@ export class CarouselMenu extends xb.Script {
     if (this.controlsPanel) {
       this.controlsPanel.rotation.set(0, 0, 0);
     }
+
+    this._syncRootFromControlsPanel();
 
     this._layoutCards();
 

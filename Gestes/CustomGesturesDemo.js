@@ -13,8 +13,7 @@ const GESTURE_LABELS = [
   "GESTURE_LABEL_MAX_ENUM",
 ];
 
-const toAssetUrl = (assetPath) =>
-  new URL(assetPath, import.meta.url).toString();
+const toAssetUrl = (assetPath) => `./Gestes/${assetPath.replace(/^\.\//, "")}`;
 
 const GESTURE_IMAGES = [
   toAssetUrl("./images/empty.png"),
@@ -45,7 +44,7 @@ export class CustomGestureDemo extends xb.Script {
     {
       // Make a root panel>grid>row>controlPanel>grid
       const panel = new xb.SpatialPanel({ backgroundColor: "#00000000" });
-      panel.position.set(0, 0, 0);
+      panel.position.set(2, 0, 0);
       this.add(panel);
 
       const grid = panel.addGrid();
@@ -146,6 +145,10 @@ export class CustomGestureDemo extends xb.Script {
     }
 
     this.lastPublishedGestures = {
+      left: UNKNOWN_GESTURE,
+      right: UNKNOWN_GESTURE,
+    };
+    this.lastRenderedGesture = {
       left: UNKNOWN_GESTURE,
       right: UNKNOWN_GESTURE,
     };
@@ -318,9 +321,12 @@ export class CustomGestureDemo extends xb.Script {
           const leftJoints = leftHand.joints;
           const leftHandResult = this.#classifyGesture(leftJoints);
 
-          // Update image and label.
-          this.leftHandImage.load(GESTURE_IMAGES[leftHandResult]);
-          this.leftHandLabel.setText(GESTURE_LABELS[leftHandResult]);
+          // Update image/label only when gesture changes to avoid reload spam.
+          if (this.lastRenderedGesture.left !== leftHandResult) {
+            this.leftHandImage.load(GESTURE_IMAGES[leftHandResult]);
+            this.leftHandLabel.setText(GESTURE_LABELS[leftHandResult]);
+            this.lastRenderedGesture.left = leftHandResult;
+          }
           this.#publishGestureIfChanged("left", leftHandResult);
         }
 
@@ -330,9 +336,12 @@ export class CustomGestureDemo extends xb.Script {
           const rightJoints = rightHand.joints;
           const rightHandResult = this.#classifyGesture(rightJoints);
 
-          // Update image and label.
-          this.rightHandImage.load(GESTURE_IMAGES[rightHandResult]);
-          this.rightHandLabel.setText(GESTURE_LABELS[rightHandResult]);
+          // Update image/label only when gesture changes to avoid reload spam.
+          if (this.lastRenderedGesture.right !== rightHandResult) {
+            this.rightHandImage.load(GESTURE_IMAGES[rightHandResult]);
+            this.rightHandLabel.setText(GESTURE_LABELS[rightHandResult]);
+            this.lastRenderedGesture.right = rightHandResult;
+          }
           this.#publishGestureIfChanged("right", rightHandResult);
         }
       }

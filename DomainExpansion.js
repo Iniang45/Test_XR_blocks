@@ -15,9 +15,9 @@ const V_SPACING = 0.6;
 const SHOW_AFTER_VR_MS = 250;
 const TEST_TOGGLE_KEY = "KeyT";
 const IMAGE_PATHS = [
-  "./images/gala.PNG",
-  "./images/2023_Studiiio.png",
-  "./images/2023_Studiiio.png",
+  "./images/icons/home.svg",
+  "./images/icons/search.svg",
+  "./images/icons/settings.svg",
 ];
 
 export class DomainExpansion extends xb.Script {
