@@ -1,13 +1,14 @@
 import * as THREE from "three";
 import * as xb from "xrblocks";
-import { Line } from "./Line.js";
+import { Etage } from "./Etage.js";
 /**
  * Rending a draggable spatial UI panel with SDF font libraries, and icons
  * buttons using XR Blocks.
  */
 export class UIManager extends xb.Script {
-  constructor() {
+  constructor(etage = []) {
     super();
+    this.etage = etage;
 
     const imageTexture = new THREE.TextureLoader().load("./images/heknow.jpg");
     const imageMesh = new THREE.Mesh(
@@ -45,6 +46,13 @@ export class UIManager extends xb.Script {
     });
     this.panel = panel;
     this.add(panel);
+
+    this.etage.parent = this.panel;
+    if (this.etage) {
+      this.etage.visible = false;
+      this.add(this.etage);
+    }
+
     const grid = panel.addGrid();
     const imageRow = grid.addRow({ weight: 0.45 });
     imageRow.addImage({
@@ -78,45 +86,32 @@ export class UIManager extends xb.Script {
 
   _onYes() {
     this.imageMesh2.visible = false;
-    switch (this.imageMesh.visible) {
-      case true:
-        this.imageMesh.visible = false;
-        break;
-      case false:
-        this.imageMesh.visible = true;
-        break;
-      default:
-        break;
-    }
-    const line = new Line(this.imageMesh, this.panel, {
-      color: 0xff0000,
-      width: 5,
-    });
-    this.line = line;
-    this.add(line);
-    console.log("yes");
-    console.log("are yo strong because i am a line", this.panel.position);
+    this.imageMesh.visible = !this.imageMesh.visible;
+
+    if (!this.etage || this.etage.branches.length === 0) return;
+    this.etage.visible = true;
+    console.log("pos panel", this.panel.position);
+    console.log("pos etage", this.etage.branches[0].position);
   }
 
   _onNo() {
     this.imageMesh.visible = false;
-
+    this.fermeture();
     if (this.line != null) {
       console.log("that's how loser thinks", this.line);
       this.line.supp();
       this.line = null;
     }
-    switch (this.imageMesh2.visible) {
-      case true:
-        this.imageMesh2.visible = false;
-        break;
-      case false:
-        this.imageMesh2.visible = true;
-        break;
-      default:
-        break;
-    }
+    this.imageMesh2.visible = !this.imageMesh2.visible;
     console.log("no");
+  }
+  fermeture() {
+    for (const branch of this.etage.branches) {
+      if (branch.etage) {
+        branch.etage.visible = false;
+      }
+    }
+    this.etage.visible = false;
   }
   acote(enfant, valeurX, valeurY, valeurZ, parent, largeur) {
     const localOffset = new THREE.Vector3(valeurX, valeurY, valeurZ);
@@ -142,6 +137,18 @@ export class UIManager extends xb.Script {
       xb.camera.position.z,
     );
     this.panel.rotateX(-70);
+
+    // Repositionner l'étage à chaque frame si visible
+    if (this.etage && this.etage.visible) {
+      this.etage.layout(0.94, 0.32, this.panel);
+    }
+    this.etage.lookAt(
+      xb.camera.position.x,
+      this.panel.position.y,
+      xb.camera.position.z,
+    );
+    this.acote(this.etage, 0, -1.5, 0, this.panel, new THREE.Vector3(1, 1, 1));
+
     this.acote(
       this.imageMesh,
       -0.15,

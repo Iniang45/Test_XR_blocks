@@ -10,6 +10,9 @@ import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
 import { Livre } from "./Livre.js";
 import { CustomGestureAncien } from "./Gestes/CustomGestureAncien.js";
 import { CarouselMenu } from "./CarouselMenu.js";
+import { Branche } from "./Branche.js";
+import { Etage } from "./Etage.js";
+import { Feuille } from "./Feuille.js";
 class SceneTransition extends xb.Script {
   constructor() {
     super();
@@ -110,6 +113,44 @@ const carouselItems = items.map((item, index) => ({
   kind: item.kind || "generic",
 }));
 
+// Créer 3 branches avec des icônes SVG
+const branche1 = new Branche({
+  imagePath: "./images/icons/home.svg",
+  width: 0.3,
+  height: 0.2,
+  audioPath: "./sounds/galaRAudio.wav",
+});
+
+const branche2 = new Branche({
+  imagePath: "./images/icons/search.svg",
+  width: 0.3,
+  height: 0.2,
+  audioPath: "./sounds/galaPAudio.wav",
+});
+
+const branche3 = new Branche({
+  imagePath: "./images/icons/grid.svg",
+  width: 0.3,
+  height: 0.2,
+  audioPath: "./sounds/galaCAudio.wav",
+});
+const brancheGala = new Branche({
+  imagePath: "./images/GalaC.png",
+  width: 0.3,
+  height: 0.2,
+  audioPath: "./sounds/galaWAudio.wav",
+});
+const branche4 = new Branche({
+  imagePath: "./images/icons/bell.svg",
+  width: 0.3,
+  height: 0.2,
+  audioPath: "./sounds/galaWAAudio.wav",
+  enfants: [branche1, brancheGala],
+});
+
+// Créer l'étage avec les 3 branches
+const etage = new Etage([branche4, branche2, branche3]);
+
 class MainScript extends xb.Script {
   init() {}
 
@@ -142,8 +183,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   xb.core.transition = new SceneTransition();
   xb.add(xb.core.transition);
-  //xb.add(new Livre(items));
-  //xb.add(new UIManager());
+
+  // Passer l'étage à UIManager
+  xb.add(new UIManager(etage));
+
   /*
 
   xb.add(
@@ -154,10 +197,10 @@ document.addEventListener("DOMContentLoaded", function () {
   );
 
   */
-  xb.add(new DomainExpansion());
-  xb.add(new CustomGestureDemo());
+  //xb.add(new DomainExpansion());
+  //xb.add(new CustomGestureDemo());
   //xb.add(new CustomGestureAncien());
-  //xb.add(new PanelBinaire("./images/know.jpg", 1, 0.6));
+  xb.add(new PanelBinaire("./images/know.jpg", 1, 0.6));
   //xb.add(new TestSuivi());
   xb.init(options);
 });

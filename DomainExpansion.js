@@ -39,24 +39,19 @@ export class DomainExpansion extends xb.Script {
       volume: 0.5,
     });
 
-    this.panelGroup = new THREE.Group();
-    this.panelGroup.visible = false;
-    this.add(this.panelGroup);
-
     this.textureLoader = new THREE.TextureLoader();
     this.planes = [];
     IMAGE_PATHS.forEach((path) => {
       const imageInteractive = new ImageInteractive(path);
       imageInteractive.panel.draggingMode = xb.DragMode.TRANSLATING;
       this.planes.push(imageInteractive.panel);
-      this.panelGroup.add(imageInteractive.panel);
+      this.add(imageInteractive.panel);
     });
-    const spawn = this.panelGroup.position.clone();
-    this.spawn = spawn;
     this.panelBinaire = new PanelBinaire("./images/know.jpg", 0.8, 0.45);
     this.panelBinaire.panel.draggingMode = xb.DragMode.TRANSLATING;
     this.planes.push(this.panelBinaire.panel);
-    this.panelGroup.add(this.panelBinaire.panel);
+    this.add(this.panelBinaire.panel);
+    this._setPanelsVisible(false);
     this._setPanelsInteractive(false);
 
     this._onGestureChanged = this._onGestureChanged.bind(this);
@@ -117,8 +112,16 @@ export class DomainExpansion extends xb.Script {
     const activeLayer = 0;
     const hiddenLayer = 1;
     const targetLayer = enabled ? activeLayer : hiddenLayer;
-    this.panelGroup.traverse((node) => {
-      node.layers.set(targetLayer);
+    this.planes.forEach((plane) => {
+      plane.traverse((node) => {
+        node.layers.set(targetLayer);
+      });
+    });
+  }
+
+  _setPanelsVisible(visible) {
+    this.planes.forEach((plane) => {
+      plane.visible = visible;
     });
   }
 
@@ -133,12 +136,11 @@ export class DomainExpansion extends xb.Script {
       this.soundPlayer.joue();
       xb.core.transition.toVR({ color: EFFECT_VR_COLOR });
       this._placePanelsInFront();
-      this.panelGroup.visible = false;
+      this._setPanelsVisible(false);
       this._setPanelsInteractive(false);
       this.pendingPanelsShow = true;
       this.showPanelsAtMs = performance.now() + SHOW_AFTER_VR_MS;
       this.effectActive = true;
-      this.spawn = this.panelGroup.position.clone();
       return;
     }
 
@@ -153,7 +155,7 @@ export class DomainExpansion extends xb.Script {
     }
     this.pendingPanelsShow = false;
     this._setPanelsInteractive(false);
-    this.panelGroup.visible = false;
+    this._setPanelsVisible(false);
     this.effectActive = false;
   }
 
@@ -173,14 +175,6 @@ export class DomainExpansion extends xb.Script {
     center.addScaledVector(forward, PANEL_DISTANCE);
     center.y = xb.camera.position.y;
 
-    this.panelGroup.position.copy(center);
-    this.panelGroup.quaternion.identity();
-    this.panelGroup.lookAt(
-      xb.camera.position.x,
-      center.y,
-      xb.camera.position.z,
-    );
-
     const count = this.planes.length;
     const columns = Math.ceil(Math.sqrt(count));
     const rows = Math.ceil(count / columns);
@@ -193,14 +187,11 @@ export class DomainExpansion extends xb.Script {
         .copy(center)
         .addScaledVector(right, x)
         .addScaledVector(up, y);
-      const localTarget = this.panelGroup.worldToLocal(targetWorld.clone());
+      const localTarget = this.worldToLocal(targetWorld.clone());
 
       plane.position.copy(localTarget);
-      //plane.up.set(0, 1, 0);
-      plane.lookAt(xb.camera.position.x, targetWorld.y, xb.camera.position.z);
+      plane.lookAt(xb.camera.position.x, center.y, xb.camera.position.z);
     });
-    console.log(`Plane positioned at`, this.panelGroup.position);
-    console.log("camera position:", xb.camera.position);
   }
   update() {
     this._hookTransitionIfNeeded();
@@ -214,14 +205,14 @@ export class DomainExpansion extends xb.Script {
     if (this.effectActive && this.pendingPanelsShow) {
       if (performance.now() >= this.showPanelsAtMs) {
         this._setPanelsInteractive(true);
-        this.panelGroup.visible = true;
+        this._setPanelsVisible(true);
         this.pendingPanelsShow = false;
       }
     }
     /*
     if (
       this.effectActive &&
-      this.panelGroup.visible &&
+      this.panelBinaire?.panel?.visible &&
       this.panelBinaire?.panel
     ) {
       const panelWorldPos = new THREE.Vector3();
