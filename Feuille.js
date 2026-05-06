@@ -9,8 +9,8 @@ import { CarouselSoundPanel } from "./CarouselSoundPanel.js";
 export class Feuille extends ImageInteractive {
   constructor({
     imagePath = "./images/know.jpg",
-    width = 0.3,
-    height = 0.2,
+    width = 0.6,
+    height = 0.4,
     audioPath = "./sounds/frog.mp3",
     item = null,
   } = {}) {
@@ -22,36 +22,32 @@ export class Feuille extends ImageInteractive {
       kind: "sound",
     };
     this.soundPanel = null;
+    this.change = false;
+    this.originalAudioPath = audioPath;
   }
 
   _onImageClicked() {
+    if (this.change) {
+      this.changeSound("./images/icons/sound.svg");
+      return;
+    }
+
     this.playImageSound();
-    this._openSoundPanel();
+    if (!this.change) {
+      this.changeSound("./images/icons/sound-off.svg", "");
+    } else {
+      this.changeSound("./images/icons/sound.svg");
+    }
   }
 
-  _openSoundPanel() {
-    if (this.soundPanel) return;
-
-    this.soundPanel = new CarouselSoundPanel(
-      this.item,
-      () => this._closeSoundPanel(),
-      () => this.playImageSound(),
-    );
-
-    this.add(this.soundPanel);
-
-    const spawnPosition = this.panel.localToWorld(
-      new THREE.Vector3(0, 0.48, 0),
-    );
-    this.soundPanel.setTargetPosition(spawnPosition);
-    this.soundPanel.setTargetYaw(this.panel.rotation.y);
+  changeSound(imagepath) {
+    this.setImage(imagepath);
+    this.change = !this.change;
   }
-
-  _closeSoundPanel() {
-    if (!this.soundPanel) return;
-
-    this.remove(this.soundPanel);
-    this.soundPanel = null;
+  changeColor() {
+    const randomColor = (Math.random() * 0xffffff) | 0;
+    this.panel.backgroundColor =
+      "#" + randomColor.toString(16).padStart(6, "0");
   }
 
   setItem(item) {

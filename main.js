@@ -13,6 +13,9 @@ import { CarouselMenu } from "./CarouselMenu.js";
 import { Branche } from "./Branche.js";
 import { Etage } from "./Etage.js";
 import { Feuille } from "./Feuille.js";
+import { PagePanel } from "./PagePanel.js";
+
+import { PanelNonBinaire } from "./PanelNonBinaire.js";
 class SceneTransition extends xb.Script {
   constructor() {
     super();
@@ -112,40 +115,53 @@ const carouselItems = items.map((item, index) => ({
   image: item.imagePath,
   kind: item.kind || "generic",
 }));
+const feuille = new Feuille({
+  imagePath: "./images/icons/sound.svg",
+  width: 0.5,
+  height: 0.3,
+  audioPath: "./sounds/galaRAudio.wav",
+});
 
 // Créer 3 branches avec des icônes SVG
 const branche1 = new Branche({
   imagePath: "./images/icons/home.svg",
-  width: 0.3,
-  height: 0.2,
+  width: 0.5,
+  height: 0.3,
   audioPath: "./sounds/galaRAudio.wav",
+  texte: "accueil",
 });
 
 const branche2 = new Branche({
   imagePath: "./images/icons/search.svg",
-  width: 0.3,
-  height: 0.2,
+  width: 0.5,
+  height: 0.3,
   audioPath: "./sounds/galaPAudio.wav",
+  texte: "recherche",
 });
 
+const brancheGala = new Branche({
+  imagePath: "./images/icons/display.svg",
+  width: 0.5,
+  height: 0.3,
+  audioPath: "./sounds/galaWAudio.wav",
+  enfants: [feuille],
+  texte: "son",
+});
 const branche3 = new Branche({
   imagePath: "./images/icons/grid.svg",
-  width: 0.3,
-  height: 0.2,
+  width: 0.5,
+  height: 0.3,
   audioPath: "./sounds/galaCAudio.wav",
-});
-const brancheGala = new Branche({
-  imagePath: "./images/GalaC.png",
-  width: 0.3,
-  height: 0.2,
-  audioPath: "./sounds/galaWAudio.wav",
+  enfants: [brancheGala],
+  texte: "categories",
 });
 const branche4 = new Branche({
-  imagePath: "./images/icons/bell.svg",
-  width: 0.3,
-  height: 0.2,
+  imagePath: "./images/icons/settings.svg",
+  width: 0.5,
+  height: 0.3,
   audioPath: "./sounds/galaWAAudio.wav",
   enfants: [branche1, brancheGala],
+  texte: "paramètres",
 });
 
 // Créer l'étage avec les 3 branches
@@ -187,6 +203,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Passer l'étage à UIManager
   xb.add(new UIManager(etage));
 
+  // Afficher les axes X, Y, Z pour debug visuel
   /*
 
   xb.add(
@@ -195,12 +212,13 @@ document.addEventListener("DOMContentLoaded", function () {
       extractSoundPath: "./Sounds/skeleton.mp3",
     }),
   );
-
+  
   */
-  //xb.add(new DomainExpansion());
+  xb.add(new DomainExpansion());
   //xb.add(new CustomGestureDemo());
   //xb.add(new CustomGestureAncien());
-  xb.add(new PanelBinaire("./images/know.jpg", 1, 0.6));
+  //xb.add(new PanelNonBinaire("./images/know.jpg", 1.2, 0.6, "kono powa"));
+  //xb.add(new PanelBinaire("./images/know.jpg", 1, 0.6));
   //xb.add(new TestSuivi());
   xb.init(options);
 });

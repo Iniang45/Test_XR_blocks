@@ -15,7 +15,21 @@ export class Etage extends xb.Script {
     }
   }
 
-  layout(spacingX = 0.94, offsetY = 0.32, parent = null) {
+  setUIManager(uiManager) {
+    for (const branch of this.branches) {
+      branch.setUIManager(uiManager);
+      // Recursively set UIManager for child branches
+      if (branch.enfants && Array.isArray(branch.enfants)) {
+        for (const enfant of branch.enfants) {
+          if (typeof enfant.setUIManager === "function") {
+            enfant.setUIManager(uiManager);
+          }
+        }
+      }
+    }
+  }
+
+  layout(spacingX = 0.72, offsetY = 0.32, parent = null) {
     const count = this.branches.length;
     if (count === 0) return;
     if (parent) {
@@ -27,6 +41,7 @@ export class Etage extends xb.Script {
     for (let i = start; i < start + count; i++) {
       const idx = i - start;
       const branch = this.branches[idx];
+      const randomColor = branch.changeColor();
       if (!branch) continue;
 
       switch (count % 2 == 0) {
@@ -37,10 +52,12 @@ export class Etage extends xb.Script {
           if (i == 0) {
             i = 1;
           }
-          branch.position.set((i * spacingX) / 1.4, offsetY, 0);
+          branch.position.set((i * spacingX) / 1.2, offsetY, 0);
 
           break;
       }
+
+      console.log("positionnement branche", idx, branch.position);
       branch.visible = true;
     }
   }

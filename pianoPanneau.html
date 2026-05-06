@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <title>XR Piano Panels | XR Blocks</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="https://xrblocks.github.io/css/xr.css"
+    />
+    <script>
+      window.litDisableBundleWarning = true;
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/",
+          "troika-three-text": "https://cdn.jsdelivr.net/gh/protectwise/troika@028b81cf308f0f22e5aa8e78196be56ec1997af5/packages/troika-three-text/src/index.js",
+          "troika-three-utils": "https://cdn.jsdelivr.net/gh/protectwise/troika@v0.52.4/packages/troika-three-utils/src/index.js",
+          "troika-worker-utils": "https://cdn.jsdelivr.net/gh/protectwise/troika@v0.52.4/packages/troika-worker-utils/src/index.js",
+          "bidi-js": "https://esm.sh/bidi-js@%5E1.0.2?target=es2022",
+          "webgl-sdf-generator": "https://esm.sh/webgl-sdf-generator@1.1.1/es2022/webgl-sdf-generator.mjs",
+          "lit": "https://cdn.jsdelivr.net/gh/lit/dist@3/core/lit-core.min.js",
+          "lit/": "https://esm.run/lit@3/",
+          "xrblocks": "https://cdn.jsdelivr.net/npm/xrblocks@0.12.0/build/xrblocks.js",
+          "xrblocks/addons/": "https://cdn.jsdelivr.net/npm/xrblocks@0.12.0/build/addons/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import "xrblocks/addons/simulator/SimulatorAddons.js";
+      import * as THREE from "three";
+      import * as xb from "xrblocks";
+
+      // --- Synthétiseur Audio ---
+      let audioCtx = null;
+
+      function playPianoNote(frequency) {
+        // Initialisation de l'AudioContext lors de la première interaction utilisateur
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        // Mélange pour un son plus proche d'un piano électrique
+        osc1.type = "sine";
+        osc2.type = "triangle";
+        osc1.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+        osc2.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+
+        // Enveloppe d'amplitude (Attack percussive, Decay rapide, Release modéré)
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.2,
+          audioCtx.currentTime + 0.3,
+        );
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.001,
+          audioCtx.currentTime + 2.0,
+        );
+
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc1.start();
+        osc2.start();
+        osc1.stop(audioCtx.currentTime + 2.0);
+        osc2.stop(audioCtx.currentTime + 2.0);
+      }
+
+      // --- Composant Corde de Piano (Mesh & Physique visuelle plus rigide) ---
+      class PianoString extends THREE.Group {
+        constructor(posA, posB, freq) {
+          super();
+          this.posA = posA;
+          this.posB = posB;
+          this.freq = freq;
+
+          this.vibrationAmp = 0;
+          this.vibrationTime = 0;
+
+          // Courbe de Bézier pour simuler la corde
+          this.curve = new THREE.QuadraticBezierCurve3(
+            this.posA,
+            this.posA.clone().lerp(this.posB, 0.5), // Point de contrôle central
+            this.posB,
+          );
+
+          // Géométrie visible (plus fine et argentée comme une corde de piano)
+          this.tubeGeometry = new THREE.TubeGeometry(
+            this.curve,
+            20,
+            0.008,
+            8,
+            false,
+          );
+          this.tubeMaterial = new THREE.MeshPhongMaterial({
+            color: 0xdddddd,
+            emissive: 0x111111,
+          });
+          this.tubeMesh = new THREE.Mesh(this.tubeGeometry, this.tubeMaterial);
+          this.add(this.tubeMesh);
+
+          // Hitbox invisible (Cylindre large pour faciliter la sélection XR/Souris)
+          const dist = posA.distanceTo(posB);
+          const hitGeo = new THREE.CylinderGeometry(0.15, 0.15, dist);
+          const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+          this.hitbox = new THREE.Mesh(hitGeo, hitMat);
+
+          // Positionnement du cylindre entre les deux panneaux
+          this.hitbox.position.copy(posA).lerp(posB, 0.5);
+          const dir = posB.clone().sub(posA).normalize();
+          this.hitbox.quaternion.setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            dir,
+          );
+
+          this.add(this.hitbox);
+        }
+
+        strike() {
+          // Vibration plus courte et tendue que la guitare
+          this.vibrationAmp = 0.05;
+          this.vibrationTime = 0;
+
+          // Flash visuel blanc/argenté
+          this.tubeMaterial.emissive.setHex(0xffffff);
+
+          // Son audio
+          playPianoNote(this.freq);
+        }
+
+        update(dt) {
+          if (this.vibrationAmp > 0.001) {
+            // Amortissement très rapide (corde très tendue)
+            this.vibrationAmp *= 0.88;
+
+            // Oscillation rapide
+            this.vibrationTime += dt * 150.0;
+
+            // Animation du point de contrôle de la courbe
+            const midPoint = this.posA.clone().lerp(this.posB, 0.5);
+            midPoint.y += Math.sin(this.vibrationTime) * this.vibrationAmp;
+            midPoint.x +=
+              Math.cos(this.vibrationTime * 1.5) * (this.vibrationAmp * 0.5);
+
+            this.curve.v1.copy(midPoint);
+
+            // Regénération de la géométrie
+            this.tubeGeometry.dispose();
+            this.tubeGeometry = new THREE.TubeGeometry(
+              this.curve,
+              20,
+              0.008,
+              8,
+              false,
+            );
+            this.tubeMesh.geometry = this.tubeGeometry;
+
+            // Retour progressif de la couleur d'émission au repos
+            this.tubeMaterial.emissive.lerp(new THREE.Color(0x111111), 0.1);
+          }
+        }
+      }
+
+      // --- Application XR Principale ---
+      class PianoPanelsApp extends xb.Script {
+        init() {
+          this.strings = [];
+
+          // Lumières
+          this.add(new THREE.HemisphereLight(0xffffff, 0x444444, 2));
+          const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+          dirLight.position.set(0, 5, 2);
+          this.add(dirLight);
+
+          // Création des 5 Panneaux UI (1 central, 4 autour)
+          const centerPanel = this.createPanel(
+            "Panneau Central\n(Mélodie)",
+            0,
+            1.4,
+            -1.8,
+          );
+          const topLeft = this.createPanel("Do (C4)", -1.2, 1.8, -1.8);
+          const topRight = this.createPanel("Mi (E4)", 1.2, 1.8, -1.8);
+          const bottomLeft = this.createPanel("Sol (G4)", -1.2, 1.0, -1.8);
+          const bottomRight = this.createPanel("Do (C5)", 1.2, 1.0, -1.8);
+
+          // Connexions avec des fréquences de piano
+          this.addString(centerPanel.position, topLeft.position, 261.63);
+          this.addString(centerPanel.position, topRight.position, 329.63);
+          this.addString(centerPanel.position, bottomLeft.position, 392.0);
+          this.addString(centerPanel.position, bottomRight.position, 523.25);
+        }
+
+        addString(posA, posB, freq) {
+          const string = new PianoString(posA, posB, freq);
+          this.add(string);
+          this.strings.push(string);
+        }
+
+        createPanel(titleText, x, y, z) {
+          const panel = new xb.SpatialPanel({
+            width: 0.65,
+            height: 0.35,
+            backgroundColor: "#111111EE", // Plus sombre pour un style piano
+          });
+          panel.position.set(x, y, z);
+          this.add(panel);
+
+          const grid = panel.addGrid();
+          grid.addRow().addText({
+            text: titleText,
+            fontColor: "#ffffff",
+            fontSize: 0.06,
+          });
+
+          panel.updateLayouts();
+          return panel;
+        }
+
+        onSelectStart(event) {
+          const controller = event.target;
+
+          // Vérification des collisions avec les cordes de piano
+          for (const str of this.strings) {
+            const intersection = xb.core.user.select(str.hitbox, controller);
+
+            if (intersection) {
+              str.strike();
+
+              // Retour haptique court (percussif)
+              if (
+                controller.gamepad &&
+                controller.gamepad.hapticActuators &&
+                controller.gamepad.hapticActuators.length > 0
+              ) {
+                controller.gamepad.hapticActuators[0].pulse(1.0, 50);
+              }
+            }
+          }
+        }
+
+        update() {
+          const dt = xb.getDeltaTime();
+          for (const str of this.strings) {
+            str.update(dt);
+          }
+        }
+      }
+
+      // --- Démarrage de l'expérience ---
+      document.addEventListener("DOMContentLoaded", () => {
+        const options = new xb.Options();
+        options.enableUI();
+        options.enableReticles();
+        options.setAppTitle("Piano XR Panneaux");
+
+        xb.add(new PianoPanelsApp());
+        xb.init(options);
+      });
+    </script>
+  </body>
+</html>
