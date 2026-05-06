@@ -19,7 +19,10 @@ export class UIManager extends xb.Script {
     });
     this.panel = panel;
     this.add(panel);
-
+    console.log("tranche macaques", this);
+    this.posOriginBranches = [];
+    this.quatOriginBranches = [];
+    this.premierAppel = false;
     this.etage.parent = this.panel;
     if (this.etage) {
       this.etage.visible = false;
@@ -58,6 +61,23 @@ export class UIManager extends xb.Script {
       this._onNo();
     };
   }
+  saveFirstEtageBranchesPositions() {
+    if (!this.etage) return;
+    for (const branch of this.etage.branches) {
+      this.posOriginBranches.push(branch.panel.position.clone());
+      this.quatOriginBranches.push(branch.panel.quaternion.clone());
+    }
+  }
+  replaceFirstEtageBranchesPositions() {
+    if (!this.etage || this.etage.branches.length === 0) return;
+    for (let i = 0; i < this.etage.branches.length; i++) {
+      const branch = this.etage.branches[i];
+      if (this.posOriginBranches[i]) {
+        branch.panel.position.copy(this.posOriginBranches[i]);
+        branch.panel.quaternion.copy(this.quatOriginBranches[i]);
+      }
+    }
+  }
 
   _onYes() {
     if (!this.etage || this.etage.branches.length === 0) return;
@@ -80,10 +100,14 @@ export class UIManager extends xb.Script {
     for (const branch of this.etage.branches) {
       if (branch.etage) {
         branch.etage.visible = false;
+        branch.posOriginBranches = [];
+        branch.quatOriginBranches = [];
+        branch.etage.FermetureLines();
       }
       branch.showLines(false);
     }
     this.etage.visible = false;
+    this.premierAppel = false;
   }
   addFavorite(branchOriginal) {
     if (this.favorites.find((fav) => fav.original === branchOriginal)) {
@@ -139,7 +163,13 @@ export class UIManager extends xb.Script {
   }
 
   _positionEtage() {
+    if (this.premierAppel === false) {
+      this.saveFirstEtageBranchesPositions();
+      this.premierAppel = true;
+    }
     if (!this.etage) return;
+    this.replaceFirstEtageBranchesPositions();
+
     this.etage.layout(1.2, 0.3, this.panel);
     this.etage.lookAt(
       xb.camera.position.x,

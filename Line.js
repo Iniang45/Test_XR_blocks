@@ -69,13 +69,23 @@ export class Line extends xb.Script {
     );
     this.add(this.hitbox);
   }
+  ChangementBasePolaire(r, theta, x, y) {
+    const newX = r * Math.cos(theta);
+    const newY = r * Math.sin(theta);
+    return { x: newX, y: newY };
+  }
 
+  estAuDessus(pos1, pos2) {
+    const dy = pos2.y - pos1.y;
+    const dz = pos2.z - pos1.z;
+    const angle = Math.atan2(dy, dz);
+    return { angle, pos1AuDessus: angle < 0 };
+  }
   positionLine() {
     const anchor1 = this.object1.panel || this.object1;
     const anchor2 = this.object2.panel || this.object2;
     anchor1.updateWorldMatrix(true, false);
     anchor2.updateWorldMatrix(true, false);
-
     const pos1 = new THREE.Vector3();
     const pos2 = new THREE.Vector3();
     anchor1.getWorldPosition(pos1);
@@ -86,15 +96,30 @@ export class Line extends xb.Script {
       parent.worldToLocal(pos1);
       parent.worldToLocal(pos2);
     }
+    const { x: zoffset, y: yoffset } = this.ChangementBasePolaire(
+      anchor1.height / 2,
+      2.46,
+      pos1.z,
+      pos1.y,
+    );
     //pos1.y -= 0.42 * Math.sqrt(anchor1.height / 2):
-    const zoffset = anchor1.height / 2.57;
-    const yoffset = anchor1.height * -0.31;
-    pos1.z -= zoffset;
-    pos1.y -= yoffset;
-    console.log(" et plus tu souris...", zoffset, yoffset);
+    const { angle, pos1AuDessus } = this.estAuDessus(pos1, pos2);
 
-    pos2.z += zoffset;
-    pos2.y += yoffset;
+    switch (pos1AuDessus) {
+      case false:
+        pos1.z += zoffset;
+        pos1.y += yoffset;
+
+        pos2.z -= zoffset;
+        pos2.y -= yoffset;
+        break;
+      case true:
+        pos1.z -= zoffset;
+        pos1.y -= yoffset;
+        pos2.z += zoffset;
+        pos2.y += yoffset;
+        break;
+    }
     this.pos1Base = pos1.clone();
     this.pos2Base = pos2.clone();
 

@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", function () {
   );
   
   */
-  xb.add(new DomainExpansion());
+  //xb.add(new DomainExpansion());
   //xb.add(new CustomGestureDemo());
   //xb.add(new CustomGestureAncien());
   //xb.add(new PanelNonBinaire("./images/know.jpg", 1.2, 0.6, "kono powa"));

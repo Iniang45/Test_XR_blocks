@@ -13,6 +13,7 @@ export class Etage extends xb.Script {
       this.add(branch);
       branch.visible = false;
     }
+    this.posOriginBranches = [];
   }
 
   setUIManager(uiManager) {
@@ -28,7 +29,14 @@ export class Etage extends xb.Script {
       }
     }
   }
-
+  FermetureLines() {
+    for (const branch of this.branches) {
+      if (branch.etage) {
+        console.log("un pour tous, et tous pour moi", branch);
+        branch.showLines(false);
+      }
+    }
+  }
   layout(spacingX = 0.72, offsetY = 0.32, parent = null) {
     const count = this.branches.length;
     if (count === 0) return;
@@ -58,6 +66,7 @@ export class Etage extends xb.Script {
       }
 
       console.log("positionnement branche", idx, branch.position);
+      this.posOriginBranches.push(branch.position);
       branch.visible = true;
     }
   }
