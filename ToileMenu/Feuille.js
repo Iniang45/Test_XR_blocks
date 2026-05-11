@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { ImageInteractive } from "./ImageInteractive.js";
-import { CarouselSoundPanel } from "./CarouselSoundPanel.js";
+import { ImageInteractive } from "../ImageInteractive.js";
+import { CarouselSoundPanel } from "../CarouselMenu/CarouselSoundPanel.js";
 
 /**
  * Feuille: image cliquable qui ouvre un CarouselSoundPanel.

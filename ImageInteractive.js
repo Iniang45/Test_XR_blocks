@@ -58,6 +58,3 @@ export class ImageInteractive extends xb.Script {
     this.panel.scale.copy(this.panelBaseScale);
   }
 }
-
-// Backward-compatible alias.
-export class ImagesInteractive extends ImageInteractive {}

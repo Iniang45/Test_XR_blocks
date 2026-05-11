@@ -4,7 +4,7 @@ import { CarouselItemCard } from "./CarouselItemCard.js";
 import { CarouselExtractedPanel } from "./CarouselExtractedPanel.js";
 import { CarouselSoundPanel } from "./CarouselSoundPanel.js";
 import { CarouselDisplayPanel } from "./CarouselDisplayPanel.js";
-import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
+import { SoundEffectPlayer } from "../SoundEffectPlayer.js";
 
 const TOGGLE_KEY = "KeyM";
 const TOGGLE_GESTURE = "SHAKA";

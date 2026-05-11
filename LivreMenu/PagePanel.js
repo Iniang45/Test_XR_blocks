@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import * as xb from "xrblocks";
-import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
+import { SoundEffectPlayer } from "../SoundEffectPlayer.js";
 
 export class PagePanel extends xb.Script {
   constructor(

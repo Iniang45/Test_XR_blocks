@@ -1,9 +1,9 @@
-import { ImageInteractive } from "./ImageInteractive.js";
-import { Line } from "./Line.js";
+import { ImageInteractive } from "../ImageInteractive.js";
+import { Line } from "../Line.js";
 import * as THREE from "three";
 import * as xb from "xrblocks";
 import { Etage } from "./Etage.js";
-import { PanelNonBinaire } from "./PanelNonBinaire.js";
+import { PanelNonBinaire } from "../PanelNonBinaire.js";
 import { Feuille } from "./Feuille.js";
 /**
  * Branche: image panel cliquable qui affiche ses enfants et les lignes au clic.
@@ -33,8 +33,6 @@ export class Branche extends PanelNonBinaire {
     this.etage = etage;
     this.lines = []; // Stocker les références aux lignes
     this.color = 0xffffff; // Couleur par défaut des lignes
-    this.posOriginBranches = [];
-    this.quatOriginBranches = [];
   }
   changeColor() {
     let randomColor = 0;
@@ -89,35 +87,7 @@ export class Branche extends PanelNonBinaire {
       }
     }
   }
-  ReplaceBranches() {
-    if (this.etage) {
-      for (let i = 0; i < this.etage.branches.length; i++) {
-        const branch = this.etage.branches[i];
-        if (this.posOriginBranches[i]) {
-          branch.panel.position.copy(this.posOriginBranches[i]);
-        }
-        if (this.quatOriginBranches[i]) {
-          branch.panel.quaternion.copy(this.quatOriginBranches[i]);
-        }
-        console.log(
-          "c'est un service que je vous rends !",
-          this.posOriginBranches,
-        );
-      }
-    }
-    this.posOriginBranches = [];
-    this.quatOriginBranches = [];
-  }
-  saveBranchesPositions() {
-    for (const branch of this.etage.branches) {
-      this.posOriginBranches.push(branch.panel.position.clone());
-      this.quatOriginBranches.push(branch.panel.quaternion.clone());
-      console.log(
-        "je suis la fin de toute chose, je suis le CATACLYSME",
-        this.posOriginBranches,
-      );
-    }
-  }
+
   _onImageClicked() {
     //this.color = this.changeColor();
     console.log("Doko kara imashita", this.panel);
@@ -132,62 +102,16 @@ export class Branche extends PanelNonBinaire {
 
   _showEtage() {
     if (!this.etage.visible) {
-      const rootTarget =
-        this.uiManager?.parent ||
-        this.uiManager ||
-        xb.scene ||
-        (xb.app && xb.app.scene) ||
-        this;
-      rootTarget.add(this.etage);
-      this.ReplaceBranches();
+      this.add(this.etage);
       this.etage.visible = true;
       console.log("layout etage", this.etage);
       this.etage.layout(0.72, 0.8, this);
       this.showLines(true);
-      this.saveBranchesPositions();
     } else {
       this.showLines(false);
       this.etage.visible = false;
-      if (this.etage.parent) {
-        this.etage.parent.remove(this.etage);
-      }
+      this.remove(this.etage);
     }
-  }
-
-  update(dt) {
-    this._syncEtageToBranch();
-    if (typeof super.update === "function") {
-      super.update(dt);
-    }
-  }
-
-  _syncEtageToBranch() {
-    if (!this.etage || !this.etage.visible || !this.etage.parent) {
-      return;
-    }
-
-    const branchWorldPos = new THREE.Vector3();
-    const branchWorldQuat = new THREE.Quaternion();
-    const branchWorldScale = new THREE.Vector3();
-    this.getWorldPosition(branchWorldPos);
-    this.getWorldQuaternion(branchWorldQuat);
-    this.getWorldScale(branchWorldScale);
-
-    const localPos = branchWorldPos.clone();
-    this.etage.parent.worldToLocal(localPos);
-
-    const parentWorldQuat = new THREE.Quaternion();
-    this.etage.parent.getWorldQuaternion(parentWorldQuat);
-    parentWorldQuat.invert();
-    const localQuat = branchWorldQuat.clone().premultiply(parentWorldQuat);
-
-    const parentWorldScale = new THREE.Vector3();
-    this.etage.parent.getWorldScale(parentWorldScale);
-    const localScale = branchWorldScale.clone().divide(parentWorldScale);
-
-    this.etage.position.copy(localPos);
-    this.etage.quaternion.copy(localQuat);
-    this.etage.scale.copy(localScale);
   }
   showLines(theboolean) {
     for (const line of this.lines) {
@@ -200,7 +124,7 @@ export class Branche extends PanelNonBinaire {
       return;
     }
     // Générer une couleur aléatoire pour cet appel de showLines
-    const lineContainer = this.uiManager?.parent || this.uiManager || this;
+    const lineContainer = this.uiManager || this;
 
     // Gamme de fréquences de piano (Do majeur)
     const pianoFrequencies = [

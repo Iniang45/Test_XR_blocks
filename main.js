@@ -1,20 +1,20 @@
 import * as THREE from "three";
 import * as xb from "xrblocks";
-import { UIManager } from "./UIManager.js";
+import { UIManager } from "./ToileMenu/UIManager.js";
 import { TestSuivi } from "./TestSuivi.js";
 import { ARVRSelector } from "./ARVRSelector.js";
 import { CustomGestureDemo } from "./Gestes/CustomGesturesDemo.js";
 import { DomainExpansion } from "./DomainExpansion.js";
 import { PanelBinaire } from "./PanelBinaire.js";
 import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
-import { Livre } from "./Livre.js";
+import { Livre } from "./LivreMenu/Livre.js";
 import { CustomGestureAncien } from "./Gestes/CustomGestureAncien.js";
-import { CarouselMenu } from "./CarouselMenu.js";
-import { Branche } from "./Branche.js";
-import { Etage } from "./Etage.js";
-import { Feuille } from "./Feuille.js";
-import { PagePanel } from "./PagePanel.js";
-
+import { CarouselMenu } from "./CarouselMenu/CarouselMenu.js";
+import { Branche } from "./ToileMenu/Branche.js";
+import { Etage } from "./ToileMenu/Etage.js";
+import { Feuille } from "./ToileMenu/Feuille.js";
+import { PagePanel } from "./LivreMenu/PagePanel.js";
+import { BeltManager } from "./BeltMenu/BeltManager.js";
 import { PanelNonBinaire } from "./PanelNonBinaire.js";
 class SceneTransition extends xb.Script {
   constructor() {
@@ -199,10 +199,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   xb.core.transition = new SceneTransition();
   xb.add(xb.core.transition);
-
-  // Passer l'étage à UIManager
-  xb.add(new UIManager(etage));
-
+  //xb.add(new UIManager(etage));
+  xb.add(new BeltManager());
   // Afficher les axes X, Y, Z pour debug visuel
   /*
 

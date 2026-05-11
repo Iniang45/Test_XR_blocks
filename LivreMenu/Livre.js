@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import * as xb from "xrblocks";
-import { SoundEffectPlayer } from "./SoundEffectPlayer.js";
-import { ImageInteractive } from "./ImageInteractive.js";
+import { SoundEffectPlayer } from "../SoundEffectPlayer.js";
+import { ImageInteractive } from "../ImageInteractive.js";
 import { PagePanel } from "./PagePanel.js";
 const kLightX = xb.getUrlParamFloat("lightX", 0);
 const kLightY = xb.getUrlParamFloat("lightY", 500);
