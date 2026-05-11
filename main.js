@@ -200,9 +200,8 @@ document.addEventListener("DOMContentLoaded", function () {
   xb.core.transition = new SceneTransition();
   xb.add(xb.core.transition);
   //xb.add(new UIManager(etage));
-  xb.add(new BeltManager());
+  //xb.add(new BeltManager());
   // Afficher les axes X, Y, Z pour debug visuel
-  /*
 
   xb.add(
     new CarouselMenu(carouselItems, {
@@ -210,8 +209,7 @@ document.addEventListener("DOMContentLoaded", function () {
       extractSoundPath: "./Sounds/skeleton.mp3",
     }),
   );
-  
-  */
+
   //xb.add(new DomainExpansion());
   //xb.add(new CustomGestureDemo());
   //xb.add(new CustomGestureAncien());

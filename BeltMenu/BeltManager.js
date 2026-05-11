@@ -2,8 +2,9 @@ import * as THREE from "three";
 import * as xb from "xrblocks";
 import { BeltPrincipal } from "./BeltPrincipal.js";
 import { BeltSecondaire } from "./BeltSecondaire.js";
+import { PanelNonBinaire } from "../PanelNonBinaire.js";
 import { ImageInteractive } from "../ImageInteractive.js";
-
+import { BeltFeuille } from "./BeltFeuille.js";
 /**
  * Manager for belt panels with state-based physics.
  * Closed: follows camera like UIManager
@@ -31,34 +32,41 @@ export class BeltManager extends xb.Script {
     this.add(this.principal);
 
     // Create children for secondaries
-    const enfant1 = new ImageInteractive(
-      "./images/icons/bell.png",
-      width * 0.5,
-      height * 0.5,
+    const enfant1 = new BeltFeuille(
+      "./images/icons/volume-up.png",
+      width * 6,
+      height * 6,
+      "volume up",
     );
-    const enfant2 = new ImageInteractive(
+    const enfantV2 = new BeltFeuille(
+      "./images/icons/volume-down.png",
+      width * 6,
+      height * 6,
+      "volume down",
+    );
+    const enfant2 = new PanelNonBinaire(
       "./images/icons/sound.png",
-      width * 0.5,
-      height * 0.5,
+      width * 6,
+      height * 6,
     );
-    const enfant3 = new ImageInteractive(
+    const enfant3 = new PanelNonBinaire(
       "./images/icons/display.png",
-      width * 0.5,
-      height * 0.5,
+      width * 6,
+      height * 6,
     );
 
     this.addSecondaryPanel(
       new BeltSecondaire(
-        "#3b82f6aa",
+        "#3b82f6",
         width * 0.75,
         height * 0.75,
         "./images/icons/sound.png",
-        [enfant1],
+        [enfant1, enfantV2],
       ),
     );
     this.addSecondaryPanel(
       new BeltSecondaire(
-        "#10b981aa",
+        "#10b981",
         width * 0.75,
         height * 0.75,
         "./images/icons/search.png",
@@ -67,7 +75,7 @@ export class BeltManager extends xb.Script {
     );
     this.addSecondaryPanel(
       new BeltSecondaire(
-        "#f59e0baa",
+        "#f59e0b",
         width * 0.75,
         height * 0.75,
         "./images/icons/grid.png",
@@ -79,6 +87,7 @@ export class BeltManager extends xb.Script {
 
   toggleState() {
     this.isOpen = !this.isOpen;
+    console.log("belt rotationY", this.principal.panel.rotation);
     this._setSecondaryPanelsVisible(this.isOpen);
   }
 

@@ -1,4 +1,5 @@
 import * as xb from "xrblocks";
+import { Line } from "../Line.js";
 
 /**
  * Secondary belt panel with its own pose and rotation handling.
@@ -16,6 +17,7 @@ export class BeltSecondaire extends xb.Script {
     this.imagePath = imagePath;
     this.enfants = enfants;
     this.enfantsVisible = false;
+    this.lines = [];
     this.panel = new xb.SpatialPanel({
       backgroundColor,
       width,
@@ -51,29 +53,67 @@ export class BeltSecondaire extends xb.Script {
 
   showEnfants(visible) {
     this.enfantsVisible = visible;
+    // clear existing lines when toggling
+    for (const l of this.lines) {
+      if (l.parent) l.parent.remove(l);
+    }
+    this.lines = [];
+
     if (visible && this.enfants.length > 0) {
+      const pianoFrequencies = [
+        261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 523.25,
+      ];
       for (const enfant of this.enfants) {
+        this.unDragMode(enfant);
         if (!enfant.parent) {
-          this.add(enfant);
+          this.panel.add(enfant);
         }
-        enfant.position.set(0.15, 0, 0);
-        enfant.visible = true;
+        this.positionEnfant();
+        // create a Line between this panel and the enfant
+        const randomFrequency =
+          pianoFrequencies[Math.floor(Math.random() * pianoFrequencies.length)];
+        const line = new Line(this, enfant, {
+          color: this.panel.backgroundColor || 0xffffcc,
+          frequency: randomFrequency,
+        });
+        this.panel.add(line);
+        this.lines.push(line);
       }
     } else {
       for (const enfant of this.enfants) {
         enfant.visible = false;
-        if (enfant.parent === this) {
-          this.remove(enfant);
+        if (enfant.parent === this.panel) {
+          this.panel.remove(enfant);
         }
       }
     }
   }
-
+  positionEnfant() {
+    const count = this.enfants.length;
+    let index = 0;
+    for (let i = -count / 2; i < count / 2; i++) {
+      const enfant = this.enfants[index];
+      enfant.position.set(2 * i, 4, 13);
+      enfant.visible = true;
+      // Set the position of each child panel
+      index++;
+      enfant.panel.rotation.x = Math.PI / 4;
+    
+    }
+  }
+  unDragMode(object) {
+    object.panel.draggingMode = "DO_NOT_DRAG";
+  }
   setImage(src) {
     this.imagePath = src;
     if (this.imageWidget) {
       this.imageWidget.load(src);
     }
+  }
+  connectLine(object1, object2) {
+    const line = new Line(object1, object2);
+    this.panel.add(line);
+    return line;
   }
 
   setVisible(visible) {
